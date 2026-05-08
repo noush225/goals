@@ -50,5 +50,11 @@
         "type": "String"
       }
     }
-  }
+  },
+  "settings": "Paramètres",
+  "dailyReminder": "Rappel quotidien",
+  "dailyReminderSubtitle": "Recevoir un rappel pour vos objectifs",
+  "reminderTime": "Heure du rappel",
+  "reminderTitle": "Il est temps de passer à l'action",
+  "reminderBody": "N'oubliez pas vos objectifs aujourd'hui !"
 }

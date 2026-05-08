@@ -21,5 +21,11 @@
   "emptyTasks": "No tasks yet. Begin your journey.",
   "requiredField": "This field is required",
   "progress": "Progress: {value}%",
-  "timeSpent": "Time spent: {time}"
+  "timeSpent": "Time spent: {time}",
+  "settings": "Settings",
+  "dailyReminder": "Daily Reminder",
+  "dailyReminderSubtitle": "Receive a reminder for your goals",
+  "reminderTime": "Reminder Time",
+  "reminderTitle": "Time to build momentum",
+  "reminderBody": "Don't forget your goals today!"
 }

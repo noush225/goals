@@ -80,4 +80,22 @@ class AppLocalizationsFr extends AppLocalizations {
   String timeSpent(String time) {
     return 'Temps passé : $time';
   }
+
+  @override
+  String get settings => 'Paramètres';
+
+  @override
+  String get dailyReminder => 'Rappel quotidien';
+
+  @override
+  String get dailyReminderSubtitle => 'Recevoir un rappel pour vos objectifs';
+
+  @override
+  String get reminderTime => 'Heure du rappel';
+
+  @override
+  String get reminderTitle => 'Il est temps de passer à l\'action';
+
+  @override
+  String get reminderBody => 'N\'oubliez pas vos objectifs aujourd\'hui !';
 }

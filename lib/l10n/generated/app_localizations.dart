@@ -229,6 +229,42 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Temps passé : {time}'**
   String timeSpent(String time);
+
+  /// No description provided for @settings.
+  ///
+  /// In fr, this message translates to:
+  /// **'Paramètres'**
+  String get settings;
+
+  /// No description provided for @dailyReminder.
+  ///
+  /// In fr, this message translates to:
+  /// **'Rappel quotidien'**
+  String get dailyReminder;
+
+  /// No description provided for @dailyReminderSubtitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Recevoir un rappel pour vos objectifs'**
+  String get dailyReminderSubtitle;
+
+  /// No description provided for @reminderTime.
+  ///
+  /// In fr, this message translates to:
+  /// **'Heure du rappel'**
+  String get reminderTime;
+
+  /// No description provided for @reminderTitle.
+  ///
+  /// In fr, this message translates to:
+  /// **'Il est temps de passer à l\'action'**
+  String get reminderTitle;
+
+  /// No description provided for @reminderBody.
+  ///
+  /// In fr, this message translates to:
+  /// **'N\'oubliez pas vos objectifs aujourd\'hui !'**
+  String get reminderBody;
 }
 
 class _AppLocalizationsDelegate

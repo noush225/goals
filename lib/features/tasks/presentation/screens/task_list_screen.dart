@@ -5,7 +5,9 @@ import '../providers/task_provider.dart';
 import '../widgets/task_item.dart';
 import 'task_form_screen.dart';
 import 'package:goals/features/focus/presentation/screens/focus_screen.dart';
-import '../../../../l10n/generated/app_localizations.dart';
+import 'package:goals/features/settings/presentation/screens/settings_screen.dart';
+import 'package:goals/features/settings/presentation/providers/settings_provider.dart';
+import 'package:goals/l10n/generated/app_localizations.dart';
 
 enum TaskFilter { today, week }
 
@@ -20,14 +22,33 @@ class _TaskListScreenState extends State<TaskListScreen> {
   TaskFilter _filter = TaskFilter.today;
   DateTime _referenceDate = DateTime.now();
 
+  late TaskProvider _taskProvider;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        context.read<TaskProvider>().loadTasks();
+        _taskProvider = context.read<TaskProvider>();
+        _taskProvider.loadTasks();
+        _taskProvider.addListener(_onTasksChanged);
       }
     });
+  }
+
+  void _onTasksChanged() {
+    if (mounted) {
+      final l10n = AppLocalizations.of(context);
+      if (l10n != null) {
+        context.read<SettingsProvider>().updateReminder(l10n);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _taskProvider.removeListener(_onTasksChanged);
+    super.dispose();
   }
 
   bool _isSameDay(DateTime a, DateTime b) {
@@ -69,6 +90,13 @@ class _TaskListScreenState extends State<TaskListScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.appTitle),
+        leading: IconButton(
+          icon: const Icon(Icons.settings_outlined),
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsScreen()),
+          ),
+        ),
         actions: [
           SegmentedButton<TaskFilter>(
             segments: [

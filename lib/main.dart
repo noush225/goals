@@ -6,6 +6,8 @@ import 'core/theme/app_theme.dart';
 import 'features/tasks/presentation/providers/task_provider.dart';
 import 'features/tasks/presentation/screens/task_list_screen.dart';
 import 'features/focus/services/audio_handler.dart';
+import 'features/settings/presentation/providers/settings_provider.dart';
+import 'core/notifications/notification_service.dart';
 import 'l10n/generated/app_localizations.dart';
 
 // Global instance to be used across the app
@@ -14,22 +16,27 @@ late GoalsAudioHandler audioHandler;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize Audio Service
   audioHandler = await AudioService.init(
     builder: () => GoalsAudioHandler(),
     config: AudioServiceConfig(
       androidNotificationChannelId: 'com.example.goals.channel.audio',
       androidNotificationChannelName: 'Focus Mode Audio',
       androidNotificationOngoing: true,
-      androidStopForegroundOnPause: false, // Keep notification when paused
+      androidStopForegroundOnPause: false,
       androidShowNotificationBadge: true,
       androidNotificationClickStartsActivity: true,
     ),
   );
 
+  // Initialize Local Notifications
+  await NotificationService().initialize();
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: const GoalsApp(),
     ),

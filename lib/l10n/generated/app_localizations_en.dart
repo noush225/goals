@@ -79,4 +79,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String timeSpent(String time) {
     return 'Time spent: $time';
   }
+
+  @override
+  String get settings => 'Settings';
+
+  @override
+  String get dailyReminder => 'Daily Reminder';
+
+  @override
+  String get dailyReminderSubtitle => 'Receive a reminder for your goals';
+
+  @override
+  String get reminderTime => 'Reminder Time';
+
+  @override
+  String get reminderTitle => 'Time to build momentum';
+
+  @override
+  String get reminderBody => 'Don\'t forget your goals today!';
 }
