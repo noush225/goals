@@ -5,12 +5,14 @@ import '../../models/task_model.dart';
 class TaskItem extends StatelessWidget {
   final Task task;
   final VoidCallback onTap;
+  final VoidCallback onStartFocus;
   final bool showDate;
 
   const TaskItem({
     super.key,
     required this.task,
     required this.onTap,
+    required this.onStartFocus,
     this.showDate = false,
   });
 
@@ -70,28 +72,44 @@ class TaskItem extends StatelessWidget {
                   ),
                 ],
               ),
-              if (task.type == TaskType.progression) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (task.type == TaskType.progression)
                     Expanded(
-                      child: LinearProgressIndicator(
-                        value: task.progressValue / 100,
-                        backgroundColor: theme.colorScheme.surfaceContainerLow,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          theme.colorScheme.primary,
-                        ),
-                        borderRadius: BorderRadius.circular(4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: LinearProgressIndicator(
+                              value: task.progressValue / 100,
+                              backgroundColor: theme.colorScheme.surfaceContainerLow,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                theme.colorScheme.primary,
+                              ),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            '${task.progressValue.toInt()}%',
+                            style: theme.textTheme.labelSmall,
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Text(
-                      '${task.progressValue.toInt()}%',
-                      style: theme.textTheme.labelSmall,
+                  if (task.type == TaskType.progression) const SizedBox(width: 16),
+                  TextButton.icon(
+                    onPressed: onStartFocus,
+                    icon: const Icon(Icons.play_circle_outline, size: 20),
+                    label: const Text('Focus'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.colorScheme.primary,
+                      visualDensity: VisualDensity.compact,
                     ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ],
           ),
         ),

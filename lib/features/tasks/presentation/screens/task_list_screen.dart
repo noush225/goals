@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../providers/task_provider.dart';
 import '../widgets/task_item.dart';
 import 'task_form_screen.dart';
+import 'package:goals/features/focus/presentation/screens/focus_screen.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 
 enum TaskFilter { today, week }
@@ -164,6 +165,12 @@ class _TaskListScreenState extends State<TaskListScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => TaskFormScreen(task: task),
+                        ),
+                      ),
+                      onStartFocus: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => FocusScreen(task: task),
                         ),
                       ),
                     );
