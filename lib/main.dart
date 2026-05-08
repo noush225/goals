@@ -16,11 +16,13 @@ void main() async {
   
   audioHandler = await AudioService.init(
     builder: () => GoalsAudioHandler(),
-    config: const AudioServiceConfig(
+    config: AudioServiceConfig(
       androidNotificationChannelId: 'com.example.goals.channel.audio',
       androidNotificationChannelName: 'Focus Mode Audio',
       androidNotificationOngoing: true,
-      androidStopForegroundOnPause: true,
+      androidStopForegroundOnPause: false, // Keep notification when paused
+      androidShowNotificationBadge: true,
+      androidNotificationClickStartsActivity: true,
     ),
   );
 
