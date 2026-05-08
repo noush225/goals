@@ -1,0 +1,8 @@
+{
+  "@@locale": "en",
+  "appTitle": "Goals",
+  "homeTitle": "Home",
+  "dbConnectionStatus": "Database Status: {status}",
+  "connected": "Connected",
+  "disconnected": "Disconnected"
+}

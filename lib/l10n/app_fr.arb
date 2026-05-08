@@ -1,0 +1,23 @@
+{
+  "@@locale": "fr",
+  "appTitle": "Objectifs",
+  "@appTitle": {
+    "description": "Le titre de l'application"
+  },
+  "homeTitle": "Accueil",
+  "@homeTitle": {
+    "description": "Titre de la page d'accueil"
+  },
+  "dbConnectionStatus": "Statut de la base de données : {status}",
+  "@dbConnectionStatus": {
+    "description": "Affiche le statut de la connexion à la base de données",
+    "placeholders": {
+      "status": {
+        "type": "String",
+        "example": "Connecté"
+      }
+    }
+  },
+  "connected": "Connecté",
+  "disconnected": "Déconnecté"
+}
