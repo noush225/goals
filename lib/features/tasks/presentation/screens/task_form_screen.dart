@@ -19,6 +19,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
   late String _title;
   late DateTime _date;
   late TaskType _type;
+  late double _progressValue;
   int? _parentId;
 
   @override
@@ -27,6 +28,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     _title = widget.task?.title ?? '';
     _date = widget.task?.date ?? DateTime.now();
     _type = widget.task?.type ?? TaskType.oneshot;
+    _progressValue = widget.task?.progressValue ?? 0.0;
     _parentId = widget.task?.parentId;
   }
 
@@ -41,7 +43,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
         date: _date,
         type: _type,
         parentId: _parentId,
-        progressValue: widget.task?.progressValue ?? 0,
+        progressValue: _type == TaskType.progression ? _progressValue : 0.0,
         totalTimeSpent: widget.task?.totalTimeSpent ?? 0,
       );
 
@@ -60,7 +62,6 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
     final theme = Theme.of(context);
     final provider = context.watch<TaskProvider>();
 
-    // Available parents: all tasks except the current one
     final availableParents = provider.tasks
         .where((t) => t.id != null && t.id != widget.task?.id)
         .toList();
@@ -128,6 +129,23 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
               },
               showSelectedIcon: false,
             ),
+            if (_type == TaskType.progression) ...[
+              const SizedBox(height: 24),
+              Text(
+                l10n.progress(_progressValue.toInt().toString()),
+                style: theme.textTheme.labelSmall,
+              ),
+              Slider(
+                value: _progressValue,
+                min: 0,
+                max: 100,
+                divisions: 100,
+                label: '${_progressValue.toInt()}%',
+                onChanged: (value) {
+                  setState(() => _progressValue = value);
+                },
+              ),
+            ],
             const SizedBox(height: 24),
             DropdownButtonFormField<int?>(
               value: _parentId,

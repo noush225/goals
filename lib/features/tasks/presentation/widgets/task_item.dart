@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../models/task_model.dart';
 
 class TaskItem extends StatelessWidget {
   final Task task;
   final VoidCallback onTap;
-  final ValueChanged<double>? onProgressChanged;
+  final bool showDate;
 
   const TaskItem({
     super.key,
     required this.task,
     required this.onTap,
-    this.onProgressChanged,
+    this.showDate = false,
   });
 
   String _formatTime(int seconds) {
@@ -37,11 +38,28 @@ class TaskItem extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text(
-                      task.title,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (showDate)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 4.0),
+                            child: Text(
+                              DateFormat.E(Localizations.localeOf(context).toString())
+                                  .add_Md()
+                                  .format(task.date),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.outline,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          task.title,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   Text(
@@ -73,14 +91,6 @@ class TaskItem extends StatelessWidget {
                     ),
                   ],
                 ),
-                if (onProgressChanged != null)
-                  Slider(
-                    value: task.progressValue,
-                    min: 0,
-                    max: 100,
-                    divisions: 100,
-                    onChanged: onProgressChanged,
-                  ),
               ],
             ],
           ),
