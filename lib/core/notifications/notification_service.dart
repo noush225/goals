@@ -40,6 +40,36 @@ class NotificationService {
     debugPrint('[NotificationService] Initialized');
   }
 
+  Future<void> showFocusTimerNotification(String taskTitle) async {
+    try {
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'focus_channel_id',
+        'Focus Mode Timer',
+        channelDescription: 'Displays the ongoing focus session timer',
+        importance: Importance.low,
+        priority: Priority.low,
+        ongoing: true,
+        usesChronometer: true,
+        when: 0, // 0 tells the OS to start counting from now
+      );
+
+      await _notificationsPlugin.show(
+        888,
+        'Working on:',
+        taskTitle,
+        const NotificationDetails(android: androidDetails, iOS: DarwinNotificationDetails()),
+      );
+      debugPrint('[NotificationService] Launched native chronometer for: $taskTitle');
+    } catch (e) {
+      debugPrint('[NotificationService] Error launching chronometer: $e');
+    }
+  }
+
+  Future<void> cancelFocusTimerNotification() async {
+    await _notificationsPlugin.cancel(888);
+    debugPrint('[NotificationService] Focus notification canceled.');
+  }
+
   Future<bool> requestPermissions() async {
     if (Platform.isIOS) {
       final bool? result = await _notificationsPlugin

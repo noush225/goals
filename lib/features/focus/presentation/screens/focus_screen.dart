@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:audio_service/audio_service.dart';
 import 'package:provider/provider.dart';
+import 'dart:async';
 import 'package:goals/features/tasks/models/task_model.dart';
 import 'package:goals/features/tasks/presentation/providers/task_provider.dart';
-import 'package:goals/main.dart';
+import 'package:goals/core/notifications/notification_service.dart';
 
 class FocusScreen extends StatefulWidget {
   final Task task;
@@ -16,6 +16,8 @@ class FocusScreen extends StatefulWidget {
 
 class _FocusScreenState extends State<FocusScreen> {
   bool _isFinished = false;
+  int _elapsedSeconds = 0;
+  Timer? _timer;
 
   @override
   void initState() {
@@ -25,23 +27,35 @@ class _FocusScreenState extends State<FocusScreen> {
 
   Future<void> _startFocus() async {
     debugPrint('[FocusScreen] Starting focus session');
-    await audioHandler.startFocus(widget.task.title);
+    
+    // Start native chronometer notification
+    await NotificationService().showFocusTimerNotification(widget.task.title);
+    
+    // Start UI timer
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
+        setState(() {
+          _elapsedSeconds++;
+        });
+      }
+    });
   }
 
   Future<void> _stopFocus() async {
     if (_isFinished) return;
     _isFinished = true;
 
-    final state = audioHandler.playbackState.value;
-    final elapsedSeconds = state.position.inSeconds;
-    
-    debugPrint('[FocusScreen] Stopping focus session. Elapsed: $elapsedSeconds seconds');
+    debugPrint('[FocusScreen] Stopping focus session. Elapsed: $_elapsedSeconds seconds');
 
-    await audioHandler.stop();
+    // Stop UI timer
+    _timer?.cancel();
 
-    if (elapsedSeconds > 0) {
+    // Cancel native notification
+    await NotificationService().cancelFocusTimerNotification();
+
+    if (_elapsedSeconds > 0) {
       final updatedTask = widget.task.copyWith(
-        totalTimeSpent: widget.task.totalTimeSpent + elapsedSeconds,
+        totalTimeSpent: widget.task.totalTimeSpent + _elapsedSeconds,
       );
       
       try {
@@ -60,11 +74,18 @@ class _FocusScreenState extends State<FocusScreen> {
     }
   }
 
-  String _formatDuration(Duration duration) {
+  String _formatDuration(int seconds) {
+    Duration duration = Duration(seconds: seconds);
     String twoDigits(int n) => n.toString().padLeft(2, "0");
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
     return "${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -108,56 +129,33 @@ class _FocusScreenState extends State<FocusScreen> {
               ),
 
               // Timer
-              StreamBuilder<PlaybackState>(
-                stream: audioHandler.playbackState,
-                builder: (context, snapshot) {
-                  final position = snapshot.data?.position ?? Duration.zero;
-                  return Column(
-                    children: [
-                      Text(
-                        _formatDuration(position),
-                        style: theme.textTheme.displayLarge?.copyWith(
-                          fontSize: 88,
-                          fontWeight: FontWeight.w200,
-                          letterSpacing: -2,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'ELAPSED TIME',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          letterSpacing: 2,
-                          color: theme.colorScheme.outline,
-                        ),
-                      ),
-                    ],
-                  );
-                },
+              Column(
+                children: [
+                  Text(
+                    _formatDuration(_elapsedSeconds),
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      fontSize: 88,
+                      fontWeight: FontWeight.w200,
+                      letterSpacing: -2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'ELAPSED TIME',
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      letterSpacing: 2,
+                      color: theme.colorScheme.outline,
+                    ),
+                  ),
+                ],
               ),
 
               // Controls
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  StreamBuilder<PlaybackState>(
-                    stream: audioHandler.playbackState,
-                    builder: (context, snapshot) {
-                      final playing = snapshot.data?.playing ?? false;
-                      return IconButton.filledTonal(
-                        onPressed: () {
-                          if (playing) {
-                            audioHandler.pause();
-                          } else {
-                            audioHandler.play();
-                          }
-                        },
-                        iconSize: 56,
-                        padding: const EdgeInsets.all(20),
-                        icon: Icon(playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
-                      );
-                    },
-                  ),
-                  const SizedBox(width: 24),
+                  // Play/Pause not implemented for pure Timer yet, but we could add it.
+                  // For now, simple Stop as requested.
                   IconButton.filled(
                     onPressed: _stopFocus,
                     iconSize: 56,
