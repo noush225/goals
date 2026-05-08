@@ -28,8 +28,9 @@ class DatabaseService {
 
       return await openDatabase(
         path,
-        version: 1,
+        version: 2,
         onCreate: _onCreate,
+        onUpgrade: _onUpgrade,
       );
     } catch (e) {
       if (kDebugMode) {
@@ -41,10 +42,9 @@ class DatabaseService {
 
   Future<void> _onCreate(Database db, int version) async {
     if (kDebugMode) {
-      print('Creating tables...');
+      print('Creating database version $version...');
     }
     
-    // Example table for Phase 1
     await db.execute('''
       CREATE TABLE settings(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,9 +53,35 @@ class DatabaseService {
       )
     ''');
 
+    await _createTasksTable(db);
+
     if (kDebugMode) {
       print('Database tables created successfully.');
     }
+  }
+
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (kDebugMode) {
+      print('Upgrading database from $oldVersion to $newVersion...');
+    }
+    if (oldVersion < 2) {
+      await _createTasksTable(db);
+    }
+  }
+
+  Future<void> _createTasksTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE tasks(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        title TEXT NOT NULL,
+        date TEXT NOT NULL,
+        type TEXT NOT NULL,
+        progressValue REAL DEFAULT 0.0,
+        parentId INTEGER,
+        totalTimeSpent INTEGER DEFAULT 0,
+        FOREIGN KEY (parentId) REFERENCES tasks (id) ON DELETE CASCADE
+      )
+    ''');
   }
 
   Future<bool> checkConnection() async {
