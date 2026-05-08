@@ -127,6 +127,108 @@ abstract class AppLocalizations {
   /// In fr, this message translates to:
   /// **'Déconnecté'**
   String get disconnected;
+
+  /// No description provided for @today.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aujourd\'hui'**
+  String get today;
+
+  /// No description provided for @week.
+  ///
+  /// In fr, this message translates to:
+  /// **'Cette semaine'**
+  String get week;
+
+  /// No description provided for @addTask.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ajouter une tâche'**
+  String get addTask;
+
+  /// No description provided for @editTask.
+  ///
+  /// In fr, this message translates to:
+  /// **'Modifier la tâche'**
+  String get editTask;
+
+  /// No description provided for @title.
+  ///
+  /// In fr, this message translates to:
+  /// **'Titre'**
+  String get title;
+
+  /// No description provided for @date.
+  ///
+  /// In fr, this message translates to:
+  /// **'Date'**
+  String get date;
+
+  /// No description provided for @type.
+  ///
+  /// In fr, this message translates to:
+  /// **'Type'**
+  String get type;
+
+  /// No description provided for @oneShot.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ponctuelle'**
+  String get oneShot;
+
+  /// No description provided for @progression.
+  ///
+  /// In fr, this message translates to:
+  /// **'Progression'**
+  String get progression;
+
+  /// No description provided for @parentTask.
+  ///
+  /// In fr, this message translates to:
+  /// **'Tâche parente'**
+  String get parentTask;
+
+  /// No description provided for @none.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune'**
+  String get none;
+
+  /// No description provided for @save.
+  ///
+  /// In fr, this message translates to:
+  /// **'Enregistrer'**
+  String get save;
+
+  /// No description provided for @delete.
+  ///
+  /// In fr, this message translates to:
+  /// **'Supprimer'**
+  String get delete;
+
+  /// No description provided for @emptyTasks.
+  ///
+  /// In fr, this message translates to:
+  /// **'Aucune tâche pour le moment. Commencez votre voyage.'**
+  String get emptyTasks;
+
+  /// No description provided for @requiredField.
+  ///
+  /// In fr, this message translates to:
+  /// **'Ce champ est requis'**
+  String get requiredField;
+
+  /// No description provided for @progress.
+  ///
+  /// In fr, this message translates to:
+  /// **'Progression : {value}%'**
+  String progress(String value);
+
+  /// No description provided for @timeSpent.
+  ///
+  /// In fr, this message translates to:
+  /// **'Temps passé : {time}'**
+  String timeSpent(String time);
 }
 
 class _AppLocalizationsDelegate

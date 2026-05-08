@@ -19,5 +19,36 @@
     }
   },
   "connected": "Connecté",
-  "disconnected": "Déconnecté"
+  "disconnected": "Déconnecté",
+  "today": "Aujourd'hui",
+  "week": "Cette semaine",
+  "addTask": "Ajouter une tâche",
+  "editTask": "Modifier la tâche",
+  "title": "Titre",
+  "date": "Date",
+  "type": "Type",
+  "oneShot": "Ponctuelle",
+  "progression": "Progression",
+  "parentTask": "Tâche parente",
+  "none": "Aucune",
+  "save": "Enregistrer",
+  "delete": "Supprimer",
+  "emptyTasks": "Aucune tâche pour le moment. Commencez votre voyage.",
+  "requiredField": "Ce champ est requis",
+  "progress": "Progression : {value}%",
+  "@progress": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "timeSpent": "Temps passé : {time}",
+  "@timeSpent": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  }
 }

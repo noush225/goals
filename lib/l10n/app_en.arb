@@ -4,5 +4,22 @@
   "homeTitle": "Home",
   "dbConnectionStatus": "Database Status: {status}",
   "connected": "Connected",
-  "disconnected": "Disconnected"
+  "disconnected": "Disconnected",
+  "today": "Today",
+  "week": "This week",
+  "addTask": "Add Task",
+  "editTask": "Edit Task",
+  "title": "Title",
+  "date": "Date",
+  "type": "Type",
+  "oneShot": "One-shot",
+  "progression": "Progression",
+  "parentTask": "Parent Task",
+  "none": "None",
+  "save": "Save",
+  "delete": "Delete",
+  "emptyTasks": "No tasks yet. Begin your journey.",
+  "requiredField": "This field is required",
+  "progress": "Progress: {value}%",
+  "timeSpent": "Time spent: {time}"
 }
