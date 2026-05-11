@@ -80,13 +80,17 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   }
 
   Future<void> _delete() async {
+    final hasChildren = context.read<TaskProvider>().childrenOf(widget.task!.id).isNotEmpty;
+    
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Supprimer la tâche ?'),
-        content: const Text('Cette action est irréversible.'),
+        content: Text(hasChildren 
+          ? 'Attention : Cette tâche possède des sous-tâches qui seront également supprimées.' 
+          : 'Cette action est irréversible.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),

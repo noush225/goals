@@ -1,21 +1,27 @@
 import 'package:flutter/foundation.dart';
+import '../services/database_service.dart';
 import 'task.dart';
 
-/// Provider in-memory pour les tâches du MVP.
-///
-/// Pour repeupler avec des exemples de démo, appelle [seedDemoTasks] depuis
-/// `main.dart` ou un menu debug.
+/// Provider gérant les tâches avec persistance SQLite.
 class TaskProvider extends ChangeNotifier {
-  TaskProvider();
-
+  final DatabaseService _db = DatabaseService();
   List<Task> _tasks = <Task>[];
 
-  /// Repeuple le store avec 5 tâches d'exemple (FR).
-  /// Utile pour les screenshots ou la démo du Focus Mode sans avoir
-  /// à créer manuellement une tâche.
-  void seedDemoTasks() {
+  TaskProvider() {
+    _loadFromDb();
+  }
+
+  Future<void> _loadFromDb() async {
+    _tasks = await _db.getAllTasks();
+    notifyListeners();
+  }
+
+  /// Repeuple le store avec des exemples (uniquement si vide).
+  Future<void> seedDemoTasks() async {
+    if (_tasks.isNotEmpty) return;
+    
     final today = DateTime.now();
-    _tasks = [
+    final demoTasks = [
       Task(
         id: 1,
         title: "Storyboarder la séquence d'ouverture",
@@ -33,34 +39,12 @@ class TaskProvider extends ChangeNotifier {
         seconds: 0,
         date: today,
       ),
-      Task(
-        id: 3,
-        title: 'Réviser le chapitre 3 du roman',
-        type: TaskType.progression,
-        progress: 35,
-        seconds: 142 * 60,
-        date: today,
-        subtasks: 'Pages 48–60',
-      ),
-      Task(
-        id: 4,
-        title: 'Enregistrer la voix off du podcast',
-        type: TaskType.oneshot,
-        progress: 100,
-        seconds: 28 * 60,
-        date: today,
-      ),
-      Task(
-        id: 5,
-        title: 'Étalonner le clip de mariage',
-        type: TaskType.progression,
-        progress: 15,
-        seconds: 47 * 60,
-        date: today.add(const Duration(days: 1)),
-        subtasks: 'Acte 1 sur 3',
-      ),
     ];
-    notifyListeners();
+
+    for (var t in demoTasks) {
+      await _db.insertTask(t);
+    }
+    await _loadFromDb();
   }
 
   List<Task> get all => List.unmodifiable(_tasks);
@@ -69,7 +53,6 @@ class TaskProvider extends ChangeNotifier {
       a.year == b.year && a.month == b.month && a.day == b.day;
 
   bool _isWithinWeek(DateTime date, DateTime reference) {
-    // On considère la semaine du lundi au dimanche
     final startOfWeek = reference.subtract(Duration(days: reference.weekday - 1));
     final startOfDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
     final endOfWeek = startOfDay.add(const Duration(days: 7));
@@ -77,22 +60,44 @@ class TaskProvider extends ChangeNotifier {
         date.isBefore(endOfWeek);
   }
 
-  /// Tâches « du jour »
+  /// Tâches racines (sans parent) pour l'affichage principal
+  List<Task> get roots => _tasks.where((t) => t.parentId == null).toList();
+
+  /// Tâches racines du jour
   List<Task> get today {
     final now = DateTime.now();
-    return _tasks.where((t) => _isSameDay(t.date, now)).toList();
+    return roots.where((t) => _isSameDay(t.date, now)).toList();
   }
 
-  /// Tâches « de la semaine »
+  /// Tâches racines de la semaine
   List<Task> get week {
     final now = DateTime.now();
-    return _tasks.where((t) => _isWithinWeek(t.date, now)).toList();
+    return roots.where((t) => _isWithinWeek(t.date, now)).toList();
   }
 
-  int get doneCount => _tasks.where((t) => t.isDone).length;
+  /// Retourne les enfants d'une tâche
+  List<Task> childrenOf(int parentId) => 
+      _tasks.where((t) => t.parentId == parentId).toList();
+
+  /// Calcule le temps TOTAL d'une tâche (le sien + celui de ses descendants)
+  int aggregateSeconds(int taskId) {
+    final task = byId(taskId);
+    if (task == null) return 0;
+    
+    int total = task.seconds;
+    final children = childrenOf(taskId);
+    for (var child in children) {
+      total += aggregateSeconds(child.id);
+    }
+    return total;
+  }
+
+  /// Le dashboard ne compte que le temps "propre" total de TOUTES les tâches
+  /// pour éviter de compter deux fois le temps des enfants.
   int get totalSeconds => _tasks.fold(0, (s, t) => s + t.seconds);
 
-  /// Liste utilisable comme parent task (toutes sauf l'enfant lui-même).
+  int get doneCount => _tasks.where((t) => t.isDone).length;
+
   List<Task> candidatesAsParent({int? excludingId}) =>
       _tasks.where((t) => t.id != excludingId).toList(growable: false);
 
@@ -103,13 +108,13 @@ class TaskProvider extends ChangeNotifier {
     return null;
   }
 
-  void add({
+  Future<void> add({
     required String title,
     required TaskType type,
     required int progress,
     required DateTime date,
     int? parentId,
-  }) {
+  }) async {
     final task = Task(
       id: DateTime.now().millisecondsSinceEpoch,
       title: title.trim(),
@@ -119,48 +124,51 @@ class TaskProvider extends ChangeNotifier {
       date: date,
       parentId: parentId,
     );
-    _tasks = [task, ..._tasks];
-    notifyListeners();
+    await _db.insertTask(task);
+    await _loadFromDb();
   }
 
-  void update({
+  Future<void> update({
     required int id,
     required String title,
     required TaskType type,
     required int progress,
     required DateTime date,
     int? parentId,
-  }) {
-    _tasks = [
-      for (final t in _tasks)
-        if (t.id == id)
-          t.copyWith(
-            title: title.trim(),
-            type: type,
-            progress: type == TaskType.progression ? progress : 0,
-            date: date,
-            parentId: parentId,
-          )
-        else
-          t,
-    ];
-    notifyListeners();
+  }) async {
+    final existing = byId(id);
+    if (existing == null) return;
+
+    final updated = existing.copyWith(
+      title: title.trim(),
+      type: type,
+      progress: type == TaskType.progression ? progress : 0,
+      date: date,
+      parentId: parentId,
+    );
+    
+    await _db.updateTask(updated);
+    await _loadFromDb();
   }
 
-  /// Ajoute la durée d'une session (en secondes) à la tâche correspondante.
-  void logSession(int taskId, int seconds) {
-    _tasks = [
-      for (final t in _tasks)
-        if (t.id == taskId)
-          t.copyWith(seconds: t.seconds + seconds)
-        else
-          t,
-    ];
-    notifyListeners();
+  Future<void> logSession(int taskId, int seconds) async {
+    final t = byId(taskId);
+    if (t != null) {
+      final updated = t.copyWith(seconds: t.seconds + seconds);
+      await _db.updateTask(updated);
+      await _loadFromDb();
+    }
   }
 
-  void remove(int id) {
-    _tasks = _tasks.where((t) => t.id != id).toList();
-    notifyListeners();
+  Future<void> remove(int id) async {
+    // Si on supprime un parent, on pourrait soit supprimer les enfants (cascade)
+    // soit les "libérer". Ici on choisit la cascade pour la simplicité.
+    final children = childrenOf(id);
+    for (var child in children) {
+      await remove(child.id);
+    }
+    
+    await _db.deleteTask(id);
+    await _loadFromDb();
   }
 }

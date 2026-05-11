@@ -24,6 +24,32 @@ class Task {
     this.subtasks,
   });
 
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'title': title,
+      'type': type.name,
+      'progress': progress,
+      'seconds': seconds,
+      'date': date.toIso8601String(),
+      'parentId': parentId,
+      'subtasks': subtasks,
+    };
+  }
+
+  factory Task.fromMap(Map<String, dynamic> map) {
+    return Task(
+      id: map['id'] as int,
+      title: map['title'] as String,
+      type: TaskType.values.byName(map['type'] as String),
+      progress: map['progress'] as int,
+      seconds: map['seconds'] as int,
+      date: DateTime.parse(map['date'] as String),
+      parentId: map['parentId'] as int?,
+      subtasks: map['subtasks'] as String?,
+    );
+  }
+
   bool get isProgression => type == TaskType.progression;
   bool get isDone => progress >= 100;
 
