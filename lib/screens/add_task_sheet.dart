@@ -8,7 +8,9 @@ import '../data/task_provider.dart';
 import '../widgets/press_button.dart';
 
 class AddTaskSheet extends StatefulWidget {
-  const AddTaskSheet({super.key});
+  const AddTaskSheet({super.key, this.task});
+
+  final Task? task;
 
   @override
   State<AddTaskSheet> createState() => _AddTaskSheetState();
@@ -27,10 +29,21 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   @override
   void initState() {
     super.initState();
-    _date = DateTime.now();
-    Future.delayed(const Duration(milliseconds: 320), () {
-      if (mounted) _titleFocus.requestFocus();
-    });
+    final t = widget.task;
+    if (t != null) {
+      _title.text = t.title;
+      _type = t.type;
+      _progress = t.progress.toDouble();
+      _date = t.date;
+      if (t.parentId != null) {
+        _parent = context.read<TaskProvider>().byId(t.parentId!);
+      }
+    } else {
+      _date = DateTime.now();
+      Future.delayed(const Duration(milliseconds: 320), () {
+        if (mounted) _titleFocus.requestFocus();
+      });
+    }
   }
 
   @override
@@ -44,19 +57,59 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
 
   void _save() {
     if (!_canSave) return;
-    context.read<TaskProvider>().add(
-          title: _title.text,
-          type: _type,
-          progress: _progress.round(),
-          date: _date,
-          parentId: _parent?.id,
-        );
+    final provider = context.read<TaskProvider>();
+    if (widget.task == null) {
+      provider.add(
+        title: _title.text,
+        type: _type,
+        progress: _progress.round(),
+        date: _date,
+        parentId: _parent?.id,
+      );
+    } else {
+      provider.update(
+        id: widget.task!.id,
+        title: _title.text,
+        type: _type,
+        progress: _progress.round(),
+        date: _date,
+        parentId: _parent?.id,
+      );
+    }
     Navigator.of(context).pop();
+  }
+
+  Future<void> _delete() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Supprimer la tâche ?'),
+        content: const Text('Cette action est irréversible.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annuler', style: TextStyle(color: AppColors.muted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Supprimer', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && mounted) {
+      context.read<TaskProvider>().remove(widget.task!.id);
+      Navigator.of(context).pop();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final viewInsets = MediaQuery.of(context).viewInsets.bottom;
+    final isEdit = widget.task != null;
 
     return Padding(
       padding: EdgeInsets.only(bottom: viewInsets),
@@ -109,16 +162,23 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                       ),
                     ),
                   ),
-                  const Text(
-                    'Nouvelle tâche',
-                    style: TextStyle(
+                  Text(
+                    isEdit ? 'Modifier la tâche' : 'Nouvelle tâche',
+                    style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: AppColors.ink,
                       letterSpacing: -0.15,
                     ),
                   ),
-                  const SizedBox(width: 56),
+                  if (isEdit)
+                    PressButton(
+                      onTap: _delete,
+                      child: const Icon(Icons.delete_outline_rounded,
+                          color: Colors.redAccent, size: 22),
+                    )
+                  else
+                    const SizedBox(width: 56),
                 ],
               ),
             ),

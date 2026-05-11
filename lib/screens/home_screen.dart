@@ -166,7 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         separatorBuilder: (_, __) => const SizedBox(height: 14),
                         itemBuilder: (_, i) => TaskCard(
                           task: visible[i],
+                          showDate: _tab == HomeTab.week,
                           onPlay: () => _openFocus(context, visible[i]),
+                          onEdit: () => _openEditSheet(context, visible[i]),
                         ),
                       ),
               ),
@@ -179,7 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
             bottom: MediaQuery.of(context).padding.bottom + 24,
             child: PressButton(
               semanticLabel: 'Ajouter une tâche',
-              onTap: () => _openAddSheet(context),
+              onTap: () => _openEditSheet(context, null),
               child: Container(
                 width: 60,
                 height: 60,
@@ -210,13 +212,13 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> _openAddSheet(BuildContext context) {
+  Future<void> _openEditSheet(BuildContext context, Task? task) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       barrierColor: const Color(0x52141816),
-      builder: (_) => const AddTaskSheet(),
+      builder: (_) => AddTaskSheet(task: task),
     );
   }
 

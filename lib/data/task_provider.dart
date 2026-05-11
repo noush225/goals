@@ -65,11 +65,29 @@ class TaskProvider extends ChangeNotifier {
 
   List<Task> get all => List.unmodifiable(_tasks);
 
-  /// Tâches « du jour » — on prend les 4 premières comme dans app.jsx.
-  List<Task> get today => _tasks.take(4).toList(growable: false);
+  bool _isSameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
-  /// Tâches « de la semaine » — toutes.
-  List<Task> get week => List.unmodifiable(_tasks);
+  bool _isWithinWeek(DateTime date, DateTime reference) {
+    // On considère la semaine du lundi au dimanche
+    final startOfWeek = reference.subtract(Duration(days: reference.weekday - 1));
+    final startOfDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    final endOfWeek = startOfDay.add(const Duration(days: 7));
+    return (date.isAtSameMomentAs(startOfDay) || date.isAfter(startOfDay)) &&
+        date.isBefore(endOfWeek);
+  }
+
+  /// Tâches « du jour »
+  List<Task> get today {
+    final now = DateTime.now();
+    return _tasks.where((t) => _isSameDay(t.date, now)).toList();
+  }
+
+  /// Tâches « de la semaine »
+  List<Task> get week {
+    final now = DateTime.now();
+    return _tasks.where((t) => _isWithinWeek(t.date, now)).toList();
+  }
 
   int get doneCount => _tasks.where((t) => t.isDone).length;
   int get totalMinutes => _tasks.fold(0, (s, t) => s + t.minutes);
@@ -105,6 +123,30 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void update({
+    required int id,
+    required String title,
+    required TaskType type,
+    required int progress,
+    required DateTime date,
+    int? parentId,
+  }) {
+    _tasks = [
+      for (final t in _tasks)
+        if (t.id == id)
+          t.copyWith(
+            title: title.trim(),
+            type: type,
+            progress: type == TaskType.progression ? progress : 0,
+            date: date,
+            parentId: parentId,
+          )
+        else
+          t,
+    ];
+    notifyListeners();
+  }
+
   /// Ajoute la durée d'une session (en secondes) à la tâche correspondante.
   void logSession(int taskId, int seconds) {
     final addedMinutes = (seconds / 60).ceil().clamp(1, 24 * 60);
@@ -119,7 +161,7 @@ class TaskProvider extends ChangeNotifier {
   }
 
   void remove(int id) {
-    _tasks = _tasks.where((t) => t.id != id).toList(growable: false);
+    _tasks = _tasks.where((t) => t.id != id).toList();
     notifyListeners();
   }
 }
