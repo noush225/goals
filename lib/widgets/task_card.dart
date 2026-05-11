@@ -59,7 +59,7 @@ class TaskCard extends StatelessWidget {
                     children: [
                       _Kicker(
                         isProgression: isProg,
-                        minutes: task.minutes,
+                        seconds: task.seconds,
                         date: showDate ? task.date : null,
                       ),
                       const SizedBox(height: 6),
@@ -115,12 +115,12 @@ class TaskCard extends StatelessWidget {
 class _Kicker extends StatelessWidget {
   const _Kicker({
     required this.isProgression,
-    required this.minutes,
+    required this.seconds,
     this.date,
   });
 
   final bool isProgression;
-  final int minutes;
+  final int seconds;
   final DateTime? date;
 
   @override
@@ -156,7 +156,7 @@ class _Kicker extends StatelessWidget {
         ],
         const _Dot(),
         Text(
-          formatMinutes(minutes),
+          formatMinutes(seconds ~/ 60),
           style: const TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.w500,

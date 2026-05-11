@@ -8,7 +8,7 @@ class Task {
   final String title;
   final TaskType type;
   final int progress; // 0..100
-  final int minutes; // total time logged
+  final int seconds; // total time logged in seconds
   final int? parentId;
   final DateTime date;
   final String? subtasks; // libre, e.g. "6 sur 10 scènes"
@@ -18,7 +18,7 @@ class Task {
     required this.title,
     required this.type,
     required this.progress,
-    required this.minutes,
+    required this.seconds,
     required this.date,
     this.parentId,
     this.subtasks,
@@ -31,7 +31,7 @@ class Task {
     String? title,
     TaskType? type,
     int? progress,
-    int? minutes,
+    int? seconds,
     int? parentId,
     DateTime? date,
     String? subtasks,
@@ -42,7 +42,7 @@ class Task {
       title: title ?? this.title,
       type: type ?? this.type,
       progress: progress ?? this.progress,
-      minutes: minutes ?? this.minutes,
+      seconds: seconds ?? this.seconds,
       parentId: clearParent ? null : (parentId ?? this.parentId),
       date: date ?? this.date,
       subtasks: subtasks ?? this.subtasks,

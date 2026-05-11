@@ -21,7 +21,7 @@ class TaskProvider extends ChangeNotifier {
         title: "Storyboarder la séquence d'ouverture",
         type: TaskType.progression,
         progress: 60,
-        minutes: 215,
+        seconds: 215 * 60,
         date: today,
         subtasks: '6 sur 10 scènes',
       ),
@@ -30,7 +30,7 @@ class TaskProvider extends ChangeNotifier {
         title: "Esquisser l'illustration du blog",
         type: TaskType.oneshot,
         progress: 0,
-        minutes: 0,
+        seconds: 0,
         date: today,
       ),
       Task(
@@ -38,7 +38,7 @@ class TaskProvider extends ChangeNotifier {
         title: 'Réviser le chapitre 3 du roman',
         type: TaskType.progression,
         progress: 35,
-        minutes: 142,
+        seconds: 142 * 60,
         date: today,
         subtasks: 'Pages 48–60',
       ),
@@ -47,7 +47,7 @@ class TaskProvider extends ChangeNotifier {
         title: 'Enregistrer la voix off du podcast',
         type: TaskType.oneshot,
         progress: 100,
-        minutes: 28,
+        seconds: 28 * 60,
         date: today,
       ),
       Task(
@@ -55,7 +55,7 @@ class TaskProvider extends ChangeNotifier {
         title: 'Étalonner le clip de mariage',
         type: TaskType.progression,
         progress: 15,
-        minutes: 47,
+        seconds: 47 * 60,
         date: today.add(const Duration(days: 1)),
         subtasks: 'Acte 1 sur 3',
       ),
@@ -90,7 +90,7 @@ class TaskProvider extends ChangeNotifier {
   }
 
   int get doneCount => _tasks.where((t) => t.isDone).length;
-  int get totalMinutes => _tasks.fold(0, (s, t) => s + t.minutes);
+  int get totalSeconds => _tasks.fold(0, (s, t) => s + t.seconds);
 
   /// Liste utilisable comme parent task (toutes sauf l'enfant lui-même).
   List<Task> candidatesAsParent({int? excludingId}) =>
@@ -115,7 +115,7 @@ class TaskProvider extends ChangeNotifier {
       title: title.trim(),
       type: type,
       progress: type == TaskType.progression ? progress : 0,
-      minutes: 0,
+      seconds: 0,
       date: date,
       parentId: parentId,
     );
@@ -149,11 +149,10 @@ class TaskProvider extends ChangeNotifier {
 
   /// Ajoute la durée d'une session (en secondes) à la tâche correspondante.
   void logSession(int taskId, int seconds) {
-    final addedMinutes = (seconds / 60).ceil().clamp(1, 24 * 60);
     _tasks = [
       for (final t in _tasks)
         if (t.id == taskId)
-          t.copyWith(minutes: t.minutes + addedMinutes)
+          t.copyWith(seconds: t.seconds + seconds)
         else
           t,
     ];

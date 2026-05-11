@@ -133,7 +133,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     _StatLine(
                       done: tasks.doneCount,
                       total: tasks.all.length,
-                      minutes: tasks.totalMinutes,
+                      seconds: tasks.totalSeconds,
                     ),
                   ],
                 ),
@@ -240,12 +240,12 @@ class _StatLine extends StatelessWidget {
   const _StatLine({
     required this.done,
     required this.total,
-    required this.minutes,
+    required this.seconds,
   });
 
   final int done;
   final int total;
-  final int minutes;
+  final int seconds;
 
   @override
   Widget build(BuildContext context) {
@@ -281,7 +281,7 @@ class _StatLine extends StatelessWidget {
               ),
             ),
           ),
-          TextSpan(text: formatMinutes(minutes), style: boldStyle),
+          TextSpan(text: formatMinutes(seconds ~/ 60), style: boldStyle),
           const TextSpan(text: ' de concentration'),
         ],
       ),
