@@ -10,7 +10,8 @@ class Task {
   final TaskType type;
   final double progressValue;
   final int? parentId;
-  final int totalTimeSpent; // In seconds
+  final int totalTimeSpent; // Aggregate time (self + children) in seconds
+  final int ownTimeSpent; // Time spent directly on this task in seconds
 
   Task({
     this.id,
@@ -20,6 +21,7 @@ class Task {
     this.progressValue = 0.0,
     this.parentId,
     this.totalTimeSpent = 0,
+    this.ownTimeSpent = 0,
   });
 
   Map<String, dynamic> toMap() {
@@ -31,6 +33,7 @@ class Task {
       'progressValue': progressValue,
       'parentId': parentId,
       'totalTimeSpent': totalTimeSpent,
+      'ownTimeSpent': ownTimeSpent,
     };
   }
 
@@ -42,7 +45,8 @@ class Task {
       type: TaskType.values.byName(map['type'] as String),
       progressValue: (map['progressValue'] as num).toDouble(),
       parentId: map['parentId'] as int?,
-      totalTimeSpent: map['totalTimeSpent'] as int,
+      totalTimeSpent: map['totalTimeSpent'] as int? ?? 0,
+      ownTimeSpent: map['ownTimeSpent'] as int? ?? 0,
     );
   }
 
@@ -54,6 +58,7 @@ class Task {
     double? progressValue,
     int? parentId,
     int? totalTimeSpent,
+    int? ownTimeSpent,
   }) {
     return Task(
       id: id ?? this.id,
@@ -63,6 +68,7 @@ class Task {
       progressValue: progressValue ?? this.progressValue,
       parentId: parentId ?? this.parentId,
       totalTimeSpent: totalTimeSpent ?? this.totalTimeSpent,
+      ownTimeSpent: ownTimeSpent ?? this.ownTimeSpent,
     );
   }
 }

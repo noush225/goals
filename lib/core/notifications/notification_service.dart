@@ -46,18 +46,25 @@ class NotificationService {
         'focus_channel_id',
         'Focus Mode Timer',
         channelDescription: 'Displays the ongoing focus session timer',
-        importance: Importance.low,
-        priority: Priority.low,
+        importance: Importance.max,
+        priority: Priority.high,
         ongoing: true,
         usesChronometer: true,
-        when: 0, // 0 tells the OS to start counting from now
+        when: 0,
       );
 
       await _notificationsPlugin.show(
         888,
         'Working on:',
         taskTitle,
-        const NotificationDetails(android: androidDetails, iOS: DarwinNotificationDetails()),
+        const NotificationDetails(
+          android: androidDetails,
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
       );
       debugPrint('[NotificationService] Launched native chronometer for: $taskTitle');
     } catch (e) {

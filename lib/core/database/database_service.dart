@@ -28,7 +28,7 @@ class DatabaseService {
 
       return await openDatabase(
         path,
-        version: 2,
+        version: 3,
         onCreate: _onCreate,
         onUpgrade: _onUpgrade,
       );
@@ -67,6 +67,9 @@ class DatabaseService {
     if (oldVersion < 2) {
       await _createTasksTable(db);
     }
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE tasks ADD COLUMN ownTimeSpent INTEGER DEFAULT 0');
+    }
   }
 
   Future<void> _createTasksTable(Database db) async {
@@ -79,6 +82,7 @@ class DatabaseService {
         progressValue REAL DEFAULT 0.0,
         parentId INTEGER,
         totalTimeSpent INTEGER DEFAULT 0,
+        ownTimeSpent INTEGER DEFAULT 0,
         FOREIGN KEY (parentId) REFERENCES tasks (id) ON DELETE CASCADE
       )
     ''');

@@ -88,74 +88,93 @@ class _TaskListScreenState extends State<TaskListScreen> {
     }
 
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       appBar: AppBar(
-        title: Text(l10n.appTitle),
+        title: Text(
+          l10n.appTitle,
+          style: theme.textTheme.displayMedium?.copyWith(
+            fontSize: 28,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
+        centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.settings_outlined),
+          icon: const Icon(Icons.settings_outlined, size: 24),
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(builder: (_) => const SettingsScreen()),
           ),
         ),
         actions: [
-          SegmentedButton<TaskFilter>(
-            segments: [
-              ButtonSegment(
-                value: TaskFilter.today,
-                label: Text(l10n.today),
-              ),
-              ButtonSegment(
-                value: TaskFilter.week,
-                label: Text(l10n.week),
-              ),
-            ],
-            selected: {_filter},
-            onSelectionChanged: (newSelection) {
+          IconButton(
+            icon: const Icon(Icons.calendar_today_outlined, size: 22),
+            onPressed: () {
               setState(() {
-                _filter = newSelection.first;
+                _filter = _filter == TaskFilter.today ? TaskFilter.week : TaskFilter.today;
               });
             },
-            showSelectedIcon: false,
-            style: const ButtonStyle(
-              visualDensity: VisualDensity.compact,
-            ),
+            color: _filter == TaskFilter.week ? theme.colorScheme.primary : theme.colorScheme.outline,
           ),
           const SizedBox(width: 8),
         ],
       ),
       body: Column(
         children: [
+          const SizedBox(height: 16),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  onPressed: () => _navigate(-1),
-                ),
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      getHeaderTitle(),
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceVariant.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 16),
+                    onPressed: () => _navigate(-1),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: theme.colorScheme.primary,
+                    ),
+                  ),
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        getHeaderTitle().toUpperCase(),
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 1.5,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  onPressed: () => _navigate(1),
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.arrow_forward_ios_rounded, size: 16),
+                    onPressed: () => _navigate(1),
+                    style: IconButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: theme.colorScheme.primary,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
+          const SizedBox(height: 12),
           Expanded(
             child: Consumer<TaskProvider>(
               builder: (context, provider, child) {
                 if (provider.isLoading) {
-                  return const Center(child: CircularProgressIndicator());
+                  return Center(
+                    child: CircularProgressIndicator(
+                      color: theme.colorScheme.primary,
+                      strokeWidth: 2,
+                    ),
+                  );
                 }
 
                 final filteredTasks = provider.tasks.where((task) {
@@ -169,20 +188,32 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 if (filteredTasks.isEmpty) {
                   return Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(32.0),
-                      child: Text(
-                        l10n.emptyTasks,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodyLarge?.copyWith(
-                          color: theme.colorScheme.outline,
-                        ),
+                      padding: const EdgeInsets.all(48.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.auto_awesome_mosaic_outlined,
+                            size: 64,
+                            color: theme.colorScheme.outline.withOpacity(0.3),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            l10n.emptyTasks,
+                            textAlign: TextAlign.center,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.outline,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 80),
+                  padding: const EdgeInsets.only(bottom: 100),
                   itemCount: filteredTasks.length,
                   itemBuilder: (context, index) {
                     final task = filteredTasks[index];
@@ -216,7 +247,11 @@ class _TaskListScreenState extends State<TaskListScreen> {
             builder: (_) => const TaskFormScreen(),
           ),
         ),
-        child: const Icon(Icons.add),
+        elevation: 4,
+        backgroundColor: theme.colorScheme.primary,
+        foregroundColor: theme.colorScheme.onPrimary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: const Icon(Icons.add_rounded, size: 36),
       ),
     );
   }

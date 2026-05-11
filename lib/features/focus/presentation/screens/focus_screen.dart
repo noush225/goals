@@ -16,6 +16,7 @@ class FocusScreen extends StatefulWidget {
 
 class _FocusScreenState extends State<FocusScreen> {
   bool _isFinished = false;
+  bool _isPaused = false;
   int _elapsedSeconds = 0;
   Timer? _timer;
 
@@ -25,15 +26,15 @@ class _FocusScreenState extends State<FocusScreen> {
     _startFocus();
   }
 
-  Future<void> _startFocus() async {
+  void _startFocus() {
     debugPrint('[FocusScreen] Starting focus session');
     
     // Start native chronometer notification
-    await NotificationService().showFocusTimerNotification(widget.task.title);
+    NotificationService().showFocusTimerNotification(widget.task.title);
     
     // Start UI timer
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
+      if (mounted && !_isPaused) {
         setState(() {
           _elapsedSeconds++;
         });
@@ -41,9 +42,31 @@ class _FocusScreenState extends State<FocusScreen> {
     });
   }
 
+  void _togglePause() {
+    setState(() {
+      _isPaused = !_isPaused;
+    });
+    
+    if (_isPaused) {
+      NotificationService().cancelFocusTimerNotification();
+      // Optionally show a "Paused" notification
+    } else {
+      NotificationService().showFocusTimerNotification(widget.task.title);
+    }
+    
+    debugPrint('[FocusScreen] Focus session ${_isPaused ? 'paused' : 'resumed'}');
+  }
+
   Future<void> _stopFocus() async {
     if (_isFinished) return;
-    _isFinished = true;
+    
+    // Show confirmation if significant time elapsed? Or just stop.
+    // The user said "Quand on appuie sur stop ça bug", so let's be careful.
+    
+    setState(() {
+      _isFinished = true;
+      _isPaused = true;
+    });
 
     debugPrint('[FocusScreen] Stopping focus session. Elapsed: $_elapsedSeconds seconds');
 
@@ -55,17 +78,23 @@ class _FocusScreenState extends State<FocusScreen> {
 
     if (_elapsedSeconds > 0) {
       final updatedTask = widget.task.copyWith(
-        totalTimeSpent: widget.task.totalTimeSpent + _elapsedSeconds,
+        ownTimeSpent: widget.task.ownTimeSpent + _elapsedSeconds,
       );
       
       try {
         debugPrint('[FocusScreen] Updating task in DB: ${updatedTask.id}');
-        if (mounted) {
-          await context.read<TaskProvider>().updateTask(updatedTask);
-          debugPrint('[FocusScreen] Task updated successfully');
-        }
+        // Use the provider from the context before popping
+        if (!mounted) return;
+        final taskProvider = context.read<TaskProvider>();
+        await taskProvider.updateTask(updatedTask);
+        debugPrint('[FocusScreen] Task updated successfully');
       } catch (e) {
         debugPrint('[FocusScreen] Error updating task: $e');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error saving time: $e')),
+          );
+        }
       }
     }
 
@@ -96,7 +125,7 @@ class _FocusScreenState extends State<FocusScreen> {
       backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+          padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 40.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -108,21 +137,27 @@ class _FocusScreenState extends State<FocusScreen> {
                     children: [
                       IconButton(
                         onPressed: _stopFocus,
-                        icon: const Icon(Icons.close),
+                        icon: const Icon(Icons.close_rounded),
+                        style: IconButton.styleFrom(
+                          foregroundColor: theme.colorScheme.outline,
+                        ),
                       ),
                       Text(
-                        'Focus Mode',
+                        'FOCUS MODE',
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: theme.colorScheme.primary,
+                          letterSpacing: 2.0,
                         ),
                       ),
                       const SizedBox(width: 48), 
                     ],
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 60),
                   Text(
                     widget.task.title,
-                    style: theme.textTheme.displayMedium,
+                    style: theme.textTheme.displayMedium?.copyWith(
+                      color: theme.colorScheme.onSurface,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -131,17 +166,21 @@ class _FocusScreenState extends State<FocusScreen> {
               // Timer
               Column(
                 children: [
-                  Text(
-                    _formatDuration(_elapsedSeconds),
-                    style: theme.textTheme.displayLarge?.copyWith(
+                  AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 200),
+                    style: theme.textTheme.displayLarge!.copyWith(
                       fontSize: 88,
                       fontWeight: FontWeight.w200,
                       letterSpacing: -2,
+                      color: _isPaused 
+                          ? theme.colorScheme.outline.withOpacity(0.5)
+                          : theme.colorScheme.onSurface,
                     ),
+                    child: Text(_formatDuration(_elapsedSeconds)),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   Text(
-                    'ELAPSED TIME',
+                    _isPaused ? 'PAUSED' : 'ELAPSED TIME',
                     style: theme.textTheme.labelSmall?.copyWith(
                       letterSpacing: 2,
                       color: theme.colorScheme.outline,
@@ -154,15 +193,27 @@ class _FocusScreenState extends State<FocusScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Play/Pause not implemented for pure Timer yet, but we could add it.
-                  // For now, simple Stop as requested.
+                  // Pause/Resume Button
+                  IconButton.filled(
+                    onPressed: _togglePause,
+                    iconSize: 32,
+                    padding: const EdgeInsets.all(16),
+                    icon: Icon(_isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded),
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.primaryContainer,
+                      foregroundColor: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  // Stop Button
                   IconButton.filled(
                     onPressed: _stopFocus,
-                    iconSize: 56,
+                    iconSize: 40,
                     padding: const EdgeInsets.all(20),
                     icon: const Icon(Icons.stop_rounded),
                     style: IconButton.styleFrom(
                       backgroundColor: theme.colorScheme.secondary,
+                      foregroundColor: theme.colorScheme.onSecondary,
                     ),
                   ),
                 ],

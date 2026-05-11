@@ -45,6 +45,7 @@ class _TaskFormScreenState extends State<TaskFormScreen> {
         parentId: _parentId,
         progressValue: _type == TaskType.progression ? _progressValue : 0.0,
         totalTimeSpent: widget.task?.totalTimeSpent ?? 0,
+        ownTimeSpent: widget.task?.ownTimeSpent ?? 0,
       );
 
       if (widget.task == null) {
