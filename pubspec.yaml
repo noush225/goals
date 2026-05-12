@@ -27,8 +27,25 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
 
 flutter:
   uses-material-design: true
   assets:
     - assets/audio/
+    - assets/icon/
+
+# Configuration de flutter_launcher_icons.
+# Générer les icônes :   dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  remove_alpha_ios: true                      # iOS n'accepte pas l'alpha — il faut un fond plein
+  image_path: "assets/icon/momentum-icon-1024.png"
+  background_color_ios: "#F7F3EA"             # fond cream sous l'icône iOS (au cas où l'alpha existe)
+  # Android adaptive icon : foreground transparent + fond plein cream
+  adaptive_icon_background: "#F7F3EA"
+  adaptive_icon_foreground: "assets/icon/momentum-icon-foreground.png"
+  # Monochrome pour Android 13+ (themed icons) — on réutilise le foreground
+  adaptive_icon_monochrome: "assets/icon/momentum-icon-foreground.png"
+  min_sdk_android: 21
