@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../app/theme.dart';
+import '../../data/settings_provider.dart';
 import '../../data/task.dart';
 import '../../data/task_provider.dart';
 import '../../utils/time_format.dart';
@@ -38,6 +39,8 @@ class _TasksTabState extends State<TasksTab> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<TaskProvider>();
+    final settings = context.watch<SettingsProvider>();
+    final firstName = settings.userName.split(' ').first.trim();
     final dateLabel = _capitalize(
       DateFormat("EEEE d MMMM", 'fr_FR').format(DateTime.now()),
     );
@@ -106,7 +109,9 @@ class _TasksTabState extends State<TasksTab> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'Que cette\njournée compte.',
+                        firstName.isEmpty
+                            ? 'Que cette\njournée compte.'
+                            : 'Salut $firstName.\nQue cette journée compte.',
                         style: Theme.of(context).textTheme.headlineLarge,
                       ),
                       const SizedBox(height: 14),

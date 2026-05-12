@@ -163,6 +163,8 @@ class TaskProvider extends ChangeNotifier {
     required int progress,
     required DateTime date,
     int? parentId,
+    bool playMusic = true,
+    String? musicTrackId,
   }) async {
     final task = Task(
       id: DateTime.now().millisecondsSinceEpoch,
@@ -172,6 +174,8 @@ class TaskProvider extends ChangeNotifier {
       seconds: 0,
       date: date,
       parentId: parentId,
+      playMusic: playMusic,
+      musicTrackId: musicTrackId,
     );
     await _db.insertTask(task);
     await _loadFromDb();
@@ -184,6 +188,9 @@ class TaskProvider extends ChangeNotifier {
     required int progress,
     required DateTime date,
     int? parentId,
+    bool? playMusic,
+    String? musicTrackId,
+    bool clearMusicTrack = false,
   }) async {
     final existing = byId(id);
     if (existing == null) return;
@@ -204,6 +211,9 @@ class TaskProvider extends ChangeNotifier {
       completedAt: shouldAutoDone && existing.completedAt == null
           ? DateTime.now()
           : existing.completedAt,
+      playMusic: playMusic,
+      musicTrackId: musicTrackId,
+      clearMusicTrack: clearMusicTrack,
     );
 
     await _db.updateTask(updated);

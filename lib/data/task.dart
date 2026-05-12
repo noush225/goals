@@ -19,6 +19,8 @@ class Task {
   final String? subtasks; // libre, e.g. "6 sur 10 scènes"
   final TaskStatus status;
   final DateTime? completedAt;
+  final bool playMusic;
+  final String? musicTrackId;
 
   const Task({
     required this.id,
@@ -31,6 +33,8 @@ class Task {
     this.subtasks,
     this.status = TaskStatus.active,
     this.completedAt,
+    this.playMusic = true,
+    this.musicTrackId,
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +49,8 @@ class Task {
       'subtasks': subtasks,
       'status': status.name,
       'completedAt': completedAt?.toIso8601String(),
+      'playMusic': playMusic ? 1 : 0,
+      'musicTrackId': musicTrackId,
     };
   }
 
@@ -64,6 +70,8 @@ class Task {
       completedAt: map['completedAt'] == null
           ? null
           : DateTime.parse(map['completedAt'] as String),
+      playMusic: (map['playMusic'] as int? ?? 1) == 1,
+      musicTrackId: map['musicTrackId'] as String?,
     );
   }
 
@@ -80,8 +88,11 @@ class Task {
     String? subtasks,
     TaskStatus? status,
     DateTime? completedAt,
+    bool? playMusic,
+    String? musicTrackId,
     bool clearParent = false,
     bool clearCompletedAt = false,
+    bool clearMusicTrack = false,
   }) {
     return Task(
       id: id,
@@ -95,6 +106,9 @@ class Task {
       status: status ?? this.status,
       completedAt:
           clearCompletedAt ? null : (completedAt ?? this.completedAt),
+      playMusic: playMusic ?? this.playMusic,
+      musicTrackId:
+          clearMusicTrack ? null : (musicTrackId ?? this.musicTrackId),
     );
   }
 }

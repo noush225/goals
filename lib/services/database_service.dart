@@ -24,7 +24,7 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: _onCreate,
       onUpgrade: _onUpgrade,
     );
@@ -42,7 +42,9 @@ class DatabaseService {
         parentId INTEGER,
         subtasks TEXT,
         status TEXT NOT NULL DEFAULT 'active',
-        completedAt TEXT
+        completedAt TEXT,
+        playMusic INTEGER NOT NULL DEFAULT 1,
+        musicTrackId TEXT
       )
     ''');
     await db.execute('''
@@ -61,9 +63,11 @@ class DatabaseService {
     );
   }
 
-  /// Migration de v1 → v2 : ajoute status + completedAt sur tasks, crée sessions.
+  /// Migrations cumulatives. Chaque `if` est non-exclusif et applique
+  /// uniquement les deltas manquants.
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     if (oldVersion < 2) {
+      // v1 → v2 : status + completedAt sur tasks, table sessions
       await db.execute(
         "ALTER TABLE tasks ADD COLUMN status TEXT NOT NULL DEFAULT 'active'",
       );
@@ -83,6 +87,15 @@ class DatabaseService {
       );
       await db.execute(
         'CREATE INDEX idx_sessions_taskId ON sessions(taskId)',
+      );
+    }
+    if (oldVersion < 3) {
+      // v2 → v3 : musique par tâche
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN playMusic INTEGER NOT NULL DEFAULT 1',
+      );
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN musicTrackId TEXT',
       );
     }
   }

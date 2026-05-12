@@ -82,6 +82,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   AppSpacing.lg, 14, AppSpacing.lg, 40,
                 ),
                 children: [
+                  // Profil
+                  _Section(
+                    title: 'Profil',
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.person_outline_rounded,
+                        label: 'Ton prénom',
+                        sub: 'Utilisé dans le salut du dashboard',
+                        trailing: PressButton(
+                          semanticLabel: 'Changer le prénom',
+                          onTap: () => _editName(context, s),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                s.userName.isEmpty ? '—' : s.userName,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.ink,
+                                  letterSpacing: -0.15,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(Icons.chevron_right_rounded,
+                                  size: 18, color: AppColors.muted),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 28),
+
                   // Notifications
                   _Section(
                     title: 'Notifications',
@@ -261,6 +296,67 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _editName(BuildContext context, SettingsProvider s) async {
+    final ctrl = TextEditingController(text: s.userName);
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Ton prénom'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          cursorColor: AppColors.accent,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: AppColors.ink,
+            letterSpacing: -0.18,
+          ),
+          decoration: InputDecoration(
+            hintText: 'Ton prénom',
+            hintStyle: TextStyle(color: AppColors.muted.withOpacity(0.8)),
+            filled: true,
+            fillColor: AppColors.surfaceSunk,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: 14, vertical: 12),
+          ),
+          onSubmitted: (v) => Navigator.of(ctx).pop(v),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.inkSoft),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(ctrl.text),
+            child: const Text(
+              'Enregistrer',
+              style: TextStyle(
+                color: AppColors.accent,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (result != null && result.trim().isNotEmpty) {
+      s.setUserName(result);
+    }
   }
 
   Future<void> _confirmReset(BuildContext context) async {

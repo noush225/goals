@@ -9,6 +9,7 @@ import 'data/sessions_provider.dart';
 import 'data/settings_provider.dart';
 import 'data/task_provider.dart';
 import 'screens/root_screen.dart';
+import 'screens/welcome_screen.dart';
 import 'services/daily_reminder_service.dart';
 import 'services/focus_notification.dart';
 
@@ -51,6 +52,26 @@ Future<void> main() async {
   runApp(MomentumApp(settings: settings));
 }
 
+/// Aiguille entre WelcomeScreen (premier lancement) et RootScreen (utilisation
+/// normale). Switch transparent via Consumer<SettingsProvider> : dès que
+/// l'utilisateur saisit son prénom, on remplace l'écran sans navigation.
+class _AppGate extends StatelessWidget {
+  const _AppGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = context.watch<SettingsProvider>();
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 320),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: settings.hasUserName
+          ? const RootScreen(key: ValueKey('root'))
+          : const WelcomeScreen(key: ValueKey('welcome')),
+    );
+  }
+}
+
 class MomentumApp extends StatelessWidget {
   const MomentumApp({super.key, required this.settings});
 
@@ -68,7 +89,7 @@ class MomentumApp extends StatelessWidget {
         title: 'Momentum',
         debugShowCheckedModeBanner: false,
         theme: buildMomentumTheme(),
-        home: const RootScreen(),
+        home: const _AppGate(),
         locale: const Locale('fr', 'FR'),
         supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
         localizationsDelegates: const [

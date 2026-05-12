@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../app/theme.dart';
+import '../data/audio_tracks.dart';
 import '../data/task.dart';
 import '../data/task_provider.dart';
 import '../widgets/press_button.dart';
@@ -25,6 +26,9 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
   late DateTime _date;
   Task? _parent;
   bool _parentOpen = false;
+  bool _playMusic = true;
+  String _musicTrackId = AudioTracks.defaultTrack.id;
+  bool _musicPickerOpen = false;
 
   @override
   void initState() {
@@ -35,6 +39,8 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
       _type = t.type;
       _progress = t.progress.toDouble();
       _date = t.date;
+      _playMusic = t.playMusic;
+      _musicTrackId = t.musicTrackId ?? AudioTracks.defaultTrack.id;
       if (t.parentId != null) {
         _parent = context.read<TaskProvider>().byId(t.parentId!);
       }
@@ -65,6 +71,8 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
         progress: _progress.round(),
         date: _date,
         parentId: _parent?.id,
+        playMusic: _playMusic,
+        musicTrackId: _playMusic ? _musicTrackId : null,
       );
     } else {
       provider.update(
@@ -74,6 +82,9 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
         progress: _progress.round(),
         date: _date,
         parentId: _parent?.id,
+        playMusic: _playMusic,
+        musicTrackId: _playMusic ? _musicTrackId : null,
+        clearMusicTrack: !_playMusic,
       );
     }
     Navigator.of(context).pop();
@@ -300,6 +311,28 @@ class _AddTaskSheetState extends State<AddTaskSheet> {
                         onPick: (t) => setState(() {
                           _parent = t;
                           _parentOpen = false;
+                        }),
+                      ),
+                    ),
+
+                    const SizedBox(height: 22),
+
+                    // Musique pendant le focus
+                    _FieldGroup(
+                      label: 'Musique pendant le focus',
+                      child: _MusicPicker(
+                        enabled: _playMusic,
+                        trackId: _musicTrackId,
+                        open: _musicPickerOpen,
+                        onToggle: (v) => setState(() {
+                          _playMusic = v;
+                          if (!v) _musicPickerOpen = false;
+                        }),
+                        onTogglePicker: () => setState(
+                            () => _musicPickerOpen = !_musicPickerOpen),
+                        onPick: (id) => setState(() {
+                          _musicTrackId = id;
+                          _musicPickerOpen = false;
                         }),
                       ),
                     ),
@@ -740,6 +773,249 @@ class _ParentDropdown extends StatelessWidget {
             fontSize: 14.5,
             color: AppColors.ink,
             letterSpacing: -0.15,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Music picker
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MusicPicker extends StatelessWidget {
+  const _MusicPicker({
+    required this.enabled,
+    required this.trackId,
+    required this.open,
+    required this.onToggle,
+    required this.onTogglePicker,
+    required this.onPick,
+  });
+
+  final bool enabled;
+  final String trackId;
+  final bool open;
+  final ValueChanged<bool> onToggle;
+  final VoidCallback onTogglePicker;
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = AudioTracks.resolve(trackId);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Toggle row
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.music_note_rounded,
+                  size: 18, color: AppColors.accent),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Lancer une musique',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.ink,
+                    letterSpacing: -0.15,
+                  ),
+                ),
+              ),
+              _SmallToggle(on: enabled, onChanged: onToggle),
+            ],
+          ),
+        ),
+
+        // Track picker (visible seulement si la musique est activée)
+        if (enabled) ...[
+          const SizedBox(height: 8),
+          PressButton(
+            onTap: onTogglePicker,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.hairline),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          current.label,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.ink,
+                            letterSpacing: -0.15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          current.description,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: open ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(Icons.expand_more_rounded,
+                        size: 18, color: AppColors.muted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (open)
+            Container(
+              margin: const EdgeInsets.only(top: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.hairline),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: Column(
+                  children: [
+                    for (var i = 0; i < AudioTracks.all.length; i++)
+                      _TrackRow(
+                        track: AudioTracks.all[i],
+                        selected: AudioTracks.all[i].id == trackId,
+                        isLast: i == AudioTracks.all.length - 1,
+                        onTap: () => onPick(AudioTracks.all[i].id),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+}
+
+class _TrackRow extends StatelessWidget {
+  const _TrackRow({
+    required this.track,
+    required this.selected,
+    required this.isLast,
+    required this.onTap,
+  });
+
+  final AmbientTrack track;
+  final bool selected;
+  final bool isLast;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: isLast ? Colors.transparent : AppColors.hairline,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    track.label,
+                    style: const TextStyle(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.ink,
+                      letterSpacing: -0.15,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    track.description,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.muted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Icon(Icons.check_rounded,
+                  size: 18, color: AppColors.accent),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SmallToggle extends StatelessWidget {
+  const _SmallToggle({required this.on, required this.onChanged});
+  final bool on;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!on),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        width: 44,
+        height: 26,
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: on ? AppColors.accent : AppColors.hairline,
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: AnimatedAlign(
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          alignment: on ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            width: 22,
+            height: 22,
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0x26000000),
+                  blurRadius: 3,
+                  offset: Offset(0, 1),
+                ),
+              ],
+            ),
           ),
         ),
       ),

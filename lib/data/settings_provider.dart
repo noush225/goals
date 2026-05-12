@@ -6,10 +6,12 @@ class SettingsProvider extends ChangeNotifier {
   static const _kReminderHour = 'settings.reminderHour';
   static const _kReminderMinute = 'settings.reminderMinute';
   static const _kLanguage = 'settings.language';
+  static const _kUserName = 'settings.userName';
 
   bool _dailyReminder = false;
   TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
   String _language = 'Français';
+  String _userName = '';
   bool _loaded = false;
 
   /// Callback déclenché à chaque changement qui affecte le scheduling
@@ -20,6 +22,8 @@ class SettingsProvider extends ChangeNotifier {
   bool get dailyReminder => _dailyReminder;
   TimeOfDay get reminderTime => _reminderTime;
   String get language => _language;
+  String get userName => _userName;
+  bool get hasUserName => _userName.trim().isNotEmpty;
   bool get loaded => _loaded;
 
   static const supportedLanguages = <String>[
@@ -38,6 +42,7 @@ class SettingsProvider extends ChangeNotifier {
     final m = prefs.getInt(_kReminderMinute) ?? 0;
     _reminderTime = TimeOfDay(hour: h, minute: m);
     _language = prefs.getString(_kLanguage) ?? 'Français';
+    _userName = prefs.getString(_kUserName) ?? '';
     _loaded = true;
     notifyListeners();
   }
@@ -48,6 +53,7 @@ class SettingsProvider extends ChangeNotifier {
     await prefs.setInt(_kReminderHour, _reminderTime.hour);
     await prefs.setInt(_kReminderMinute, _reminderTime.minute);
     await prefs.setString(_kLanguage, _language);
+    await prefs.setString(_kUserName, _userName);
   }
 
   void setDailyReminder(bool v) {
@@ -66,6 +72,12 @@ class SettingsProvider extends ChangeNotifier {
 
   void setLanguage(String v) {
     _language = v;
+    notifyListeners();
+    _save();
+  }
+
+  void setUserName(String v) {
+    _userName = v.trim();
     notifyListeners();
     _save();
   }

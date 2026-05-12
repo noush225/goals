@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../app/theme.dart';
+import '../data/audio_tracks.dart';
 import '../data/sessions_provider.dart';
 import '../data/task.dart';
 import '../data/task_provider.dart';
@@ -45,7 +46,11 @@ class _FocusScreenState extends State<FocusScreen>
   bool _musicPlaying = true;
   bool _muted = false;
 
-  static const _audioAsset = 'audio/drawingsample1.mp3';
+  /// Piste choisie sur la tâche, ou la piste par défaut si null/inconnue.
+  AmbientTrack get _track => AudioTracks.resolve(widget.task.musicTrackId);
+
+  /// La tâche autorise-t-elle la musique ? Affecte la lecture ET l'UI.
+  bool get _musicEnabledForTask => widget.task.playMusic;
 
   /// Durée écoulée calculée à partir de l'horloge réelle.
   /// Robuste aux suspensions de l'isolate Dart en background : même si le
@@ -90,9 +95,8 @@ class _FocusScreenState extends State<FocusScreen>
   }
 
   Future<void> _initAudio() async {
-    // Demande à audioplayers un wake lock (stayAwake) et configure le player
-    // pour rester actif quand l'app passe en background. Ça maintient
-    // l'isolate Dart en vie, donc le timer continue à tourner normalement.
+    // On configure le contexte audio même quand la tâche n'a pas de musique :
+    // stayAwake aide aussi le timer à survivre en background.
     try {
       await AudioPlayer.global.setAudioContext(
         AudioContext(
@@ -111,6 +115,16 @@ class _FocusScreenState extends State<FocusScreen>
       );
     } catch (_) {
       // Si la config échoue, on continue sans — le timer reste correct via wall-clock.
+    }
+    if (!_musicEnabledForTask) {
+      // Tâche sans musique : on initialise l'état UI en conséquence et on ne
+      // démarre rien. Le widget musique s'affichera grisé.
+      if (mounted) {
+        setState(() => _musicPlaying = false);
+      } else {
+        _musicPlaying = false;
+      }
+      return;
     }
     await _player.setReleaseMode(ReleaseMode.loop);
     await _startMusic();
@@ -167,14 +181,17 @@ class _FocusScreenState extends State<FocusScreen>
   }
 
   Future<void> _startMusic() async {
+    if (!_musicEnabledForTask) return;
     try {
-      await _player.play(AssetSource(_audioAsset));
+      await _player.play(AssetSource(_track.assetPath));
     } catch (_) {
       // Si l'audio n'est pas disponible, on garde simplement l'UI sans bloquer.
     }
   }
 
   Future<void> _toggleMusic() async {
+    // No-op si la tâche a explicitement coupé la musique.
+    if (!_musicEnabledForTask) return;
     setState(() => _musicPlaying = !_musicPlaying);
     if (_musicPlaying) {
       await _player.resume();
@@ -184,6 +201,7 @@ class _FocusScreenState extends State<FocusScreen>
   }
 
   Future<void> _toggleMute() async {
+    if (!_musicEnabledForTask) return;
     setState(() => _muted = !_muted);
     await _player.setVolume(_muted ? 0 : 1);
   }
@@ -426,6 +444,10 @@ class _FocusScreenState extends State<FocusScreen>
                         const SizedBox(height: 32),
 
                         _MusicWidget(
+                          trackLabel: _musicEnabledForTask
+                              ? _track.label
+                              : 'Sans musique',
+                          enabled: _musicEnabledForTask,
                           playing: _musicPlaying,
                           muted: _muted,
                           onTogglePlay: _toggleMusic,
@@ -552,12 +574,16 @@ class _BreathingRing extends StatelessWidget {
 
 class _MusicWidget extends StatelessWidget {
   const _MusicWidget({
+    required this.trackLabel,
+    required this.enabled,
     required this.playing,
     required this.muted,
     required this.onTogglePlay,
     required this.onToggleMute,
   });
 
+  final String trackLabel;
+  final bool enabled;
   final bool playing;
   final bool muted;
   final VoidCallback onTogglePlay;
@@ -565,63 +591,76 @@ class _MusicWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 14, 10),
-      decoration: BoxDecoration(
-        color: const Color(0x0DFFFFFF),
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        border: Border.all(color: AppColors.focusRing),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.music_note_rounded,
-              color: AppColors.focusAccent, size: 16),
-          const SizedBox(width: 10),
-          const Text(
-            'Pluie en forêt',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.focusInk,
-              letterSpacing: -0.13,
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: enabled ? 1.0 : 0.45,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 14, 10),
+        decoration: BoxDecoration(
+          color: const Color(0x0DFFFFFF),
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          border: Border.all(color: AppColors.focusRing),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              enabled
+                  ? Icons.music_note_rounded
+                  : Icons.music_off_rounded,
+              color: AppColors.focusAccent,
+              size: 16,
             ),
-          ),
-          const SizedBox(width: 12),
-          _Waveform(playing: playing, color: AppColors.focusAccent),
-          const SizedBox(width: 12),
-          PressButton(
-            semanticLabel: playing ? 'Pause' : 'Lecture',
-            onTap: onTogglePlay,
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: const BoxDecoration(
-                color: Color(0x14FFFFFF),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                size: 16,
+            const SizedBox(width: 10),
+            Text(
+              trackLabel,
+              style: const TextStyle(
+                fontSize: 13,
                 color: AppColors.focusInk,
+                letterSpacing: -0.13,
               ),
             ),
-          ),
-          const SizedBox(width: 4),
-          PressButton(
-            semanticLabel: muted ? 'Activer le son' : 'Couper le son',
-            onTap: onToggleMute,
-            child: Container(
-              width: 30,
-              height: 30,
-              alignment: Alignment.center,
-              child: Icon(
-                muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
-                size: 16,
-                color: muted ? AppColors.focusMuted : AppColors.focusInk,
+            if (enabled) ...[
+              const SizedBox(width: 12),
+              _Waveform(playing: playing, color: AppColors.focusAccent),
+              const SizedBox(width: 12),
+              PressButton(
+                semanticLabel: playing ? 'Pause' : 'Lecture',
+                onTap: onTogglePlay,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: const BoxDecoration(
+                    color: Color(0x14FFFFFF),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    playing
+                        ? Icons.pause_rounded
+                        : Icons.play_arrow_rounded,
+                    size: 16,
+                    color: AppColors.focusInk,
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+              const SizedBox(width: 4),
+              PressButton(
+                semanticLabel: muted ? 'Activer le son' : 'Couper le son',
+                onTap: onToggleMute,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  alignment: Alignment.center,
+                  child: Icon(
+                    muted ? Icons.volume_off_rounded : Icons.volume_up_rounded,
+                    size: 16,
+                    color: muted ? AppColors.focusMuted : AppColors.focusInk,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
