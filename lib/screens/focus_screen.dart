@@ -28,24 +28,40 @@ class FocusScreen extends StatefulWidget {
   State<FocusScreen> createState() => _FocusScreenState();
 }
 
-class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin {
+class _FocusScreenState extends State<FocusScreen>
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   Timer? _ticker;
-  int _seconds = 0;
   bool _paused = false;
   late final DateTime _sessionStartedAt;
+  Duration _totalPaused = Duration.zero;
+  DateTime? _pausedAt;
   StreamSubscription<FocusNotifAction>? _notifSub;
 
   late final AnimationController _breath;
-  late final AudioPlayer _player;
+  // Eagerly initialized so toggle handlers can fire avant que _initAudio()
+  // ait fini son await — c'est safe car les méthodes pause/resume du player
+  // tolèrent un état "pas encore joué".
+  final AudioPlayer _player = AudioPlayer();
   bool _musicPlaying = true;
   bool _muted = false;
 
   static const _audioAsset = 'audio/drawingsample1.mp3';
 
+  /// Durée écoulée calculée à partir de l'horloge réelle.
+  /// Robuste aux suspensions de l'isolate Dart en background : même si le
+  /// Timer.periodic s'arrête de ticker pendant que le téléphone dort, dès qu'il
+  /// se réveille (ou que l'app revient au foreground) on récupère le delta réel.
+  int get _seconds {
+    final ref = _pausedAt ?? DateTime.now();
+    return ref.difference(_sessionStartedAt).inSeconds -
+        _totalPaused.inSeconds;
+  }
+
   @override
   void initState() {
     super.initState();
     _sessionStartedAt = DateTime.now();
+    WidgetsBinding.instance.addObserver(this);
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
     _breath = AnimationController(
@@ -53,14 +69,13 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
       duration: const Duration(seconds: 6),
     )..repeat(reverse: true);
 
-    _player = AudioPlayer();
-    _player.setReleaseMode(ReleaseMode.loop);
-    _startMusic();
+    _initAudio();
 
+    // Tick UI chaque seconde. Si Android suspend le tick, _seconds se basera
+    // sur l'horloge dès le réveil.
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_paused) return;
-      setState(() => _seconds += 1);
-      // Met à jour la notif chaque seconde (silencieuse via onlyAlertOnce).
+      if (mounted) setState(() {});
       _refreshNotif();
     });
 
@@ -72,6 +87,43 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
 
     // Écoute les actions de la notif (taps sur Pause / Terminer).
     _notifSub = FocusNotificationService.actions.listen(_handleNotifAction);
+  }
+
+  Future<void> _initAudio() async {
+    // Demande à audioplayers un wake lock (stayAwake) et configure le player
+    // pour rester actif quand l'app passe en background. Ça maintient
+    // l'isolate Dart en vie, donc le timer continue à tourner normalement.
+    try {
+      await AudioPlayer.global.setAudioContext(
+        AudioContext(
+          android: const AudioContextAndroid(
+            isSpeakerphoneOn: false,
+            stayAwake: true,
+            contentType: AndroidContentType.music,
+            usageType: AndroidUsageType.media,
+            audioFocus: AndroidAudioFocus.gain,
+          ),
+          iOS: AudioContextIOS(
+            category: AVAudioSessionCategory.playback,
+            options: const {AVAudioSessionOptions.mixWithOthers},
+          ),
+        ),
+      );
+    } catch (_) {
+      // Si la config échoue, on continue sans — le timer reste correct via wall-clock.
+    }
+    await _player.setReleaseMode(ReleaseMode.loop);
+    await _startMusic();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Quand l'app revient au foreground, on force un refresh pour que le timer
+    // reflète immédiatement le temps réel écoulé.
+    if (state == AppLifecycleState.resumed && mounted) {
+      setState(() {});
+      _refreshNotif();
+    }
   }
 
   Future<void> _refreshNotif() => FocusNotificationService.show(
@@ -92,7 +144,17 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
   }
 
   Future<void> _togglePause() async {
-    setState(() => _paused = !_paused);
+    final goingToPause = !_paused;
+    if (goingToPause) {
+      _pausedAt = DateTime.now();
+    } else {
+      // On a relâché la pause : on cumule la durée pausée.
+      if (_pausedAt != null) {
+        _totalPaused += DateTime.now().difference(_pausedAt!);
+        _pausedAt = null;
+      }
+    }
+    setState(() => _paused = goingToPause);
     if (_paused) {
       // Pause aussi la musique pour cohérence
       await _player.pause();
@@ -128,6 +190,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     _notifSub?.cancel();
     _breath.dispose();

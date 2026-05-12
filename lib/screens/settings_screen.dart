@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../app/theme.dart';
+import '../data/sessions_provider.dart';
 import '../data/settings_provider.dart';
+import '../data/task_provider.dart';
 import '../widgets/press_button.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -205,6 +207,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ),
 
+                  const SizedBox(height: 28),
+
+                  // Données
+                  _Section(
+                    title: 'Données',
+                    children: [
+                      _SettingsRow(
+                        icon: Icons.delete_sweep_outlined,
+                        label: 'Réinitialiser les sessions',
+                        sub:
+                            'Efface tout le temps loggé. Les tâches sont conservées.',
+                        trailing: PressButton(
+                          semanticLabel: 'Réinitialiser',
+                          onTap: () => _confirmReset(context),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceSunk,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Text(
+                              'Effacer',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.ink,
+                                letterSpacing: -0.13,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 40),
                   const Center(
                     child: Text(
@@ -223,6 +261,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmReset(BuildContext context) async {
+    final sessions = context.read<SessionsProvider>();
+    final tasks = context.read<TaskProvider>();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Text('Tout effacer ?'),
+        content: const Text(
+          "Toutes tes sessions et le temps cumulé sur chaque tâche seront supprimés. "
+          "Les tâches elles-mêmes restent. Cette action est irréversible.",
+          style: TextStyle(color: AppColors.inkSoft, height: 1.45),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(
+              'Annuler',
+              style: TextStyle(color: AppColors.inkSoft),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text(
+              'Tout effacer',
+              style: TextStyle(
+                color: Color(0xFFB8755C),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      await sessions.clearAll();
+      // sessions.clearAll a aussi modifié tasks.seconds en base — on recharge.
+      await tasks.reload();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: AppColors.ink,
+          behavior: SnackBarBehavior.floating,
+          content: Text(
+            'Sessions et temps réinitialisés.',
+            style: TextStyle(color: AppColors.surface),
+          ),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   String _formatTime(TimeOfDay t) {

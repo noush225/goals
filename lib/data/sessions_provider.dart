@@ -74,6 +74,13 @@ class SessionsProvider extends ChangeNotifier {
     await _loadFromDb();
   }
 
+  /// Efface toutes les sessions (et le temps cumulé des tâches) via
+  /// [DatabaseService.resetAllTime]. Les tâches sont préservées.
+  Future<void> clearAll() async {
+    await _db.resetAllTime();
+    await _loadFromDb();
+  }
+
   static bool _sameDay(DateTime a, DateTime b) =>
       a.year == b.year && a.month == b.month && a.day == b.day;
 }

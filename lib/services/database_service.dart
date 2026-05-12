@@ -146,4 +146,14 @@ class DatabaseService {
     final db = await database;
     await db.delete('sessions', where: 'id = ?', whereArgs: [id]);
   }
+
+  /// Efface toutes les sessions ET remet le compteur `seconds` de toutes les
+  /// tâches à 0 (les tâches elles-mêmes ne sont PAS supprimées).
+  Future<void> resetAllTime() async {
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('sessions');
+      await txn.update('tasks', {'seconds': 0});
+    });
+  }
 }

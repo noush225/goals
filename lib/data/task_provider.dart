@@ -134,6 +134,11 @@ class TaskProvider extends ChangeNotifier {
     await _loadFromDb();
   }
 
+  /// Recharge depuis la DB. Utile après un reset global du temps via
+  /// [SessionsProvider.clearAll], qui modifie aussi le `seconds` des tasks
+  /// directement en base.
+  Future<void> reload() => _loadFromDb();
+
   /// Recherche full-text simple (case-insensitive, sur le titre).
   List<Task> search(String query, {bool onlyRoots = true}) {
     final q = query.trim().toLowerCase();
