@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../app/theme.dart';
+import '../data/sessions_provider.dart';
 import '../data/task.dart';
 import '../data/task_provider.dart';
 import '../services/focus_notification.dart';
@@ -31,6 +32,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
   Timer? _ticker;
   int _seconds = 0;
   bool _paused = false;
+  late final DateTime _sessionStartedAt;
   StreamSubscription<FocusNotifAction>? _notifSub;
 
   late final AnimationController _breath;
@@ -43,6 +45,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+    _sessionStartedAt = DateTime.now();
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light);
 
     _breath = AnimationController(
@@ -83,7 +86,7 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
         await _togglePause();
         break;
       case FocusNotifAction.stop:
-        if (mounted) _finish();
+        if (mounted) _pauseAndExit(); // tap Terminer sur notif = pause, pas done
         break;
     }
   }
@@ -134,11 +137,40 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  void _finish() {
-    context.read<TaskProvider>().logSession(widget.task.id, _seconds);
-    Navigator.of(context).pop();
+  /// Log la session, n'affecte pas le statut. La tâche reste active.
+  Future<void> _pauseAndExit() async {
+    if (_seconds > 0) {
+      await context
+          .read<SessionsProvider>()
+          .log(
+            taskId: widget.task.id,
+            startedAt: _sessionStartedAt,
+            durationSeconds: _seconds,
+          );
+      await context.read<TaskProvider>().logSession(widget.task.id, _seconds);
+    }
+    if (mounted) Navigator.of(context).pop();
   }
 
+  /// Log la session ET marque la tâche comme terminée.
+  Future<void> _finishDone() async {
+    if (_seconds > 0) {
+      await context
+          .read<SessionsProvider>()
+          .log(
+            taskId: widget.task.id,
+            startedAt: _sessionStartedAt,
+            durationSeconds: _seconds,
+          );
+      await context.read<TaskProvider>().logSession(widget.task.id, _seconds);
+    }
+    await context
+        .read<TaskProvider>()
+        .setStatus(widget.task.id, TaskStatus.done);
+    if (mounted) Navigator.of(context).pop();
+  }
+
+  /// Annule sans rien logger.
   void _cancel() {
     Navigator.of(context).pop();
   }
@@ -341,35 +373,72 @@ class _FocusScreenState extends State<FocusScreen> with TickerProviderStateMixin
                   ),
                 ),
 
-                // Finish
+                // Actions de fin de session : Pause + C'est plié !
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                  child: PressButton(
-                    onTap: _finish,
-                    child: Container(
-                      width: double.infinity,
-                      height: 60,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppColors.focusAccent,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.focusTimerGlow,
-                            blurRadius: 40,
+                  child: Column(
+                    children: [
+                      // C'est plié ! (action primaire, accent vert glow)
+                      PressButton(
+                        onTap: _finishDone,
+                        child: Container(
+                          width: double.infinity,
+                          height: 60,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.focusAccent,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.focusTimerGlow,
+                                blurRadius: 40,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                      child: const Text(
-                        'Terminer la session',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -0.17,
-                          color: AppColors.focusBg,
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_rounded,
+                                  color: AppColors.focusBg, size: 22),
+                              SizedBox(width: 8),
+                              Text(
+                                "C'est plié !",
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -0.17,
+                                  color: AppColors.focusBg,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      // Pause, je reprendrai (action secondaire, ghost)
+                      PressButton(
+                        onTap: _pauseAndExit,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0x0DFFFFFF),
+                            border: Border.all(color: AppColors.focusRing),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Text(
+                            'Pause, je reprendrai',
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: -0.15,
+                              color: AppColors.focusInkSoft,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

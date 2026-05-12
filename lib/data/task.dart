@@ -2,6 +2,11 @@ import 'package:flutter/foundation.dart';
 
 enum TaskType { oneshot, progression }
 
+/// Cycle de vie d'une tâche :
+/// • active : en cours, visible dans la Tab Mes Tâches
+/// • done   : marquée terminée, dans la section repliée "Terminées récemment"
+enum TaskStatus { active, done }
+
 @immutable
 class Task {
   final int id;
@@ -12,6 +17,8 @@ class Task {
   final int? parentId;
   final DateTime date;
   final String? subtasks; // libre, e.g. "6 sur 10 scènes"
+  final TaskStatus status;
+  final DateTime? completedAt;
 
   const Task({
     required this.id,
@@ -22,6 +29,8 @@ class Task {
     required this.date,
     this.parentId,
     this.subtasks,
+    this.status = TaskStatus.active,
+    this.completedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -34,6 +43,8 @@ class Task {
       'date': date.toIso8601String(),
       'parentId': parentId,
       'subtasks': subtasks,
+      'status': status.name,
+      'completedAt': completedAt?.toIso8601String(),
     };
   }
 
@@ -47,11 +58,17 @@ class Task {
       date: DateTime.parse(map['date'] as String),
       parentId: map['parentId'] as int?,
       subtasks: map['subtasks'] as String?,
+      status: map['status'] == null
+          ? TaskStatus.active
+          : TaskStatus.values.byName(map['status'] as String),
+      completedAt: map['completedAt'] == null
+          ? null
+          : DateTime.parse(map['completedAt'] as String),
     );
   }
 
   bool get isProgression => type == TaskType.progression;
-  bool get isDone => progress >= 100;
+  bool get isDone => status == TaskStatus.done;
 
   Task copyWith({
     String? title,
@@ -61,7 +78,10 @@ class Task {
     int? parentId,
     DateTime? date,
     String? subtasks,
+    TaskStatus? status,
+    DateTime? completedAt,
     bool clearParent = false,
+    bool clearCompletedAt = false,
   }) {
     return Task(
       id: id,
@@ -72,6 +92,9 @@ class Task {
       parentId: clearParent ? null : (parentId ?? this.parentId),
       date: date ?? this.date,
       subtasks: subtasks ?? this.subtasks,
+      status: status ?? this.status,
+      completedAt:
+          clearCompletedAt ? null : (completedAt ?? this.completedAt),
     );
   }
 }

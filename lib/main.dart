@@ -5,9 +5,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import 'app/theme.dart';
+import 'data/sessions_provider.dart';
 import 'data/settings_provider.dart';
 import 'data/task_provider.dart';
-import 'screens/home_screen.dart';
+import 'screens/root_screen.dart';
 import 'services/focus_notification.dart';
 
 Future<void> main() async {
@@ -36,13 +37,14 @@ class MomentumApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => SessionsProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
       ],
       child: MaterialApp(
         title: 'Momentum',
         debugShowCheckedModeBanner: false,
         theme: buildMomentumTheme(),
-        home: const HomeScreen(),
+        home: const RootScreen(),
         locale: const Locale('fr', 'FR'),
         supportedLocales: const [Locale('fr', 'FR'), Locale('en', 'US')],
         localizationsDelegates: const [

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
+import '../data/session.dart';
 import '../data/task.dart';
 
 class DatabaseService {
@@ -23,8 +24,9 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
   }
 
@@ -38,14 +40,58 @@ class DatabaseService {
         seconds INTEGER NOT NULL,
         date TEXT NOT NULL,
         parentId INTEGER,
-        subtasks TEXT
+        subtasks TEXT,
+        status TEXT NOT NULL DEFAULT 'active',
+        completedAt TEXT
       )
     ''');
+    await db.execute('''
+      CREATE TABLE sessions(
+        id INTEGER PRIMARY KEY,
+        taskId INTEGER NOT NULL,
+        startedAt TEXT NOT NULL,
+        durationSeconds INTEGER NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX idx_sessions_startedAt ON sessions(startedAt DESC)',
+    );
+    await db.execute(
+      'CREATE INDEX idx_sessions_taskId ON sessions(taskId)',
+    );
   }
+
+  /// Migration de v1 → v2 : ajoute status + completedAt sur tasks, crée sessions.
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        "ALTER TABLE tasks ADD COLUMN status TEXT NOT NULL DEFAULT 'active'",
+      );
+      await db.execute(
+        'ALTER TABLE tasks ADD COLUMN completedAt TEXT',
+      );
+      await db.execute('''
+        CREATE TABLE sessions(
+          id INTEGER PRIMARY KEY,
+          taskId INTEGER NOT NULL,
+          startedAt TEXT NOT NULL,
+          durationSeconds INTEGER NOT NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX idx_sessions_startedAt ON sessions(startedAt DESC)',
+      );
+      await db.execute(
+        'CREATE INDEX idx_sessions_taskId ON sessions(taskId)',
+      );
+    }
+  }
+
+  // ─── Tasks ────────────────────────────────────────────────────────────────
 
   Future<List<Task>> getAllTasks() async {
     final db = await database;
-    final List<Map<String, dynamic>> maps = await db.query('tasks');
+    final maps = await db.query('tasks');
     return maps.map((m) => Task.fromMap(m)).toList();
   }
 
@@ -75,5 +121,29 @@ class DatabaseService {
       where: 'id = ?',
       whereArgs: [id],
     );
+    // On supprime aussi les sessions orphelines liées à cette tâche
+    await db.delete('sessions', where: 'taskId = ?', whereArgs: [id]);
+  }
+
+  // ─── Sessions ─────────────────────────────────────────────────────────────
+
+  Future<List<Session>> getAllSessions() async {
+    final db = await database;
+    final maps = await db.query('sessions', orderBy: 'startedAt DESC');
+    return maps.map((m) => Session.fromMap(m)).toList();
+  }
+
+  Future<void> insertSession(Session s) async {
+    final db = await database;
+    await db.insert(
+      'sessions',
+      s.toMap(),
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> deleteSession(int id) async {
+    final db = await database;
+    await db.delete('sessions', where: 'id = ?', whereArgs: [id]);
   }
 }

@@ -63,6 +63,25 @@ class TaskProvider extends ChangeNotifier {
   /// Tâches racines (sans parent) pour l'affichage principal
   List<Task> get roots => _tasks.where((t) => t.parentId == null).toList();
 
+  /// Racines actives (non terminées).
+  List<Task> get activeRoots =>
+      roots.where((t) => t.status == TaskStatus.active).toList();
+
+  /// Tâches terminées (toutes, racines ou enfants), triées par date de complétion desc.
+  List<Task> get doneTasks {
+    final list = _tasks.where((t) => t.status == TaskStatus.done).toList();
+    list.sort((a, b) {
+      final ax = a.completedAt ?? a.date;
+      final bx = b.completedAt ?? b.date;
+      return bx.compareTo(ax);
+    });
+    return list;
+  }
+
+  /// Racines terminées (pour la section repliable).
+  List<Task> get doneRoots =>
+      doneTasks.where((t) => t.parentId == null).toList();
+
   /// Tâches racines du jour
   List<Task> get today {
     final now = DateTime.now();
@@ -97,6 +116,31 @@ class TaskProvider extends ChangeNotifier {
   int get totalSeconds => _tasks.fold(0, (s, t) => s + t.seconds);
 
   int get doneCount => _tasks.where((t) => t.isDone).length;
+
+  /// Marque (ou démarque) une tâche comme terminée.
+  Future<void> setStatus(int taskId, TaskStatus status) async {
+    final t = byId(taskId);
+    if (t == null) return;
+    final updated = t.copyWith(
+      status: status,
+      completedAt: status == TaskStatus.done ? DateTime.now() : null,
+      clearCompletedAt: status == TaskStatus.active,
+      // Pour une Progression, marquer done = pousser à 100% pour cohérence visuelle.
+      progress: status == TaskStatus.done && t.isProgression
+          ? 100
+          : t.progress,
+    );
+    await _db.updateTask(updated);
+    await _loadFromDb();
+  }
+
+  /// Recherche full-text simple (case-insensitive, sur le titre).
+  List<Task> search(String query, {bool onlyRoots = true}) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return onlyRoots ? activeRoots : _tasks;
+    final pool = onlyRoots ? activeRoots : _tasks;
+    return pool.where((t) => t.title.toLowerCase().contains(q)).toList();
+  }
 
   List<Task> candidatesAsParent({int? excludingId}) =>
       _tasks.where((t) => t.id != excludingId).toList(growable: false);
@@ -139,14 +183,24 @@ class TaskProvider extends ChangeNotifier {
     final existing = byId(id);
     if (existing == null) return;
 
+    final newProgress = type == TaskType.progression ? progress : 0;
+    // Auto-done : si une Progression atteint 100%, on la marque terminée.
+    final shouldAutoDone =
+        type == TaskType.progression && newProgress >= 100;
+    final newStatus = shouldAutoDone ? TaskStatus.done : existing.status;
+
     final updated = existing.copyWith(
       title: title.trim(),
       type: type,
-      progress: type == TaskType.progression ? progress : 0,
+      progress: newProgress,
       date: date,
       parentId: parentId,
+      status: newStatus,
+      completedAt: shouldAutoDone && existing.completedAt == null
+          ? DateTime.now()
+          : existing.completedAt,
     );
-    
+
     await _db.updateTask(updated);
     await _loadFromDb();
   }
